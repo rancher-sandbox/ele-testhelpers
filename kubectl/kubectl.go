@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sut
+package kubectl
 
 import (
 	"bytes"
@@ -49,7 +49,7 @@ type Kubectl struct {
 }
 
 // NewKubectl returns a new CfOperatorkubectl command
-func NewKubectl() *Kubectl {
+func New() *Kubectl {
 	return &Kubectl{
 		Namespace:    "",
 		PollTimeout:  300 * time.Second,
