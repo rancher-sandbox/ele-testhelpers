@@ -7,11 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var (
-	chart      string
-	externalIP string
-)
-
 func TestKubectl(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "kubectl test Suite")
