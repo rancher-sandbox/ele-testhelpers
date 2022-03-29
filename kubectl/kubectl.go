@@ -29,10 +29,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	wait "github.com/rancher-sandbox/ele-testhelpers/helpers"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -121,12 +120,12 @@ func (k *Kubectl) PodExists(namespace string, labelName string, podName string) 
 }
 
 // PodStatus returns the status if the pod by that label is present
-func (k *Kubectl) PodStatus(namespace string, podName string) (*v1.PodStatus, error) {
+func (k *Kubectl) PodStatus(namespace string, podName string) (*PodStatus, error) {
 	out, err := runBinary(kubeCtlCmd, "--namespace", namespace, "get", "pod", podName, "-o", "json")
 	if err != nil {
 		return nil, errors.Wrapf(err, "Getting pod %s failed. %s", podName, string(out))
 	}
-	var pod v1.Pod
+	var pod Pod
 	err = json.Unmarshal(out, &pod)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Invalid json '%s': %s", string(out), err.Error())
@@ -163,19 +162,6 @@ func (k *Kubectl) Exists(namespace, resource, name string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
-}
-
-// Service returns the service if serviceName exists.
-func (k *Kubectl) Service(namespace string, serviceName string) (v1.Service, error) {
-	out, err := runBinary(kubeCtlCmd, "--namespace", namespace, "get", "service", serviceName, "-o", "json")
-	if err != nil {
-		return v1.Service{}, errors.Wrapf(err, "failed to get service %s", serviceName)
-	}
-	var service v1.Service
-	if err := json.Unmarshal(out, &service); err != nil {
-		return v1.Service{}, errors.Wrapf(err, "failed to get service %s", serviceName)
-	}
-	return service, nil
 }
 
 // WaitForSecret blocks until the secret is available. It fails after the timeout.
