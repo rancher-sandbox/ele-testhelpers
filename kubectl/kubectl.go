@@ -77,7 +77,14 @@ func (k *Kubectl) GetPodNames(namespace string, selector string) ([]string, erro
 		return []string{}, err
 	}
 	names := strings.Split(string(out), " ")
-	return names, nil
+	namesR := []string{}
+	for _, n := range names {
+		if n != "" {
+			namesR = append(namesR, n)
+		}
+	}
+
+	return namesR, nil
 }
 
 // WaitForPod blocks until the pod is available. It fails after the timeout.
