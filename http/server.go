@@ -10,7 +10,10 @@ func Server(ctx context.Context, listenAddr string, content string) {
 	srv := http.Server{
 		Addr: listenAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(content))
+			_, err := w.Write([]byte(content))
+			if err != nil {
+				fmt.Printf("Write failed: %v\n", err)
+			}
 		}),
 	}
 

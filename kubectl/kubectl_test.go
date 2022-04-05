@@ -1,6 +1,7 @@
 package kubectl_test
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -29,7 +30,12 @@ var _ = Describe("MachineRegistration e2e tests", func() {
 
 			Expect(err).ShouldNot(HaveOccurred())
 
-			defer k.Delete("pod", "test")
+			defer func() {
+				err := k.Delete("pod", "test")
+				if err != nil {
+					fmt.Fprintf(GinkgoWriter, "Error while deleting test pod: %v\n", err)
+				}
+			}()
 			Eventually(func() []string {
 				f, _ := k.GetPodNames("default", "")
 				return f
