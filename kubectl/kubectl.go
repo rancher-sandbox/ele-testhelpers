@@ -105,8 +105,10 @@ func (k *Kubectl) NamespaceWithReadyPod(namespace string, labelName string) (boo
 		if e == nil || e.ContainerStatuses == nil || len(e.ContainerStatuses) == 0 {
 			return false, nil
 		}
-		if !e.ContainerStatuses[0].Ready {
-			return false, nil
+		for _, s := range e.ContainerStatuses {
+			if !s.Ready {
+				return false, nil
+			}
 		}
 	}
 	return true, nil
