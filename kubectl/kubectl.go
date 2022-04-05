@@ -96,12 +96,12 @@ func (k *Kubectl) WaitForNamespaceWithPod(namespace string, labelName string) er
 
 // NamespaceWithPodExists returns true if pods by that label are present in the given namespace
 func (k *Kubectl) NamespaceWithPodExists(namespace string, labelName string) (bool, error) {
-	pods, err := GetPodNames(namespace, labelName)
+	pods, err := k.GetPodNames(namespace, labelName)
 	if err != nil {
 		return false, err
 	}
 	for _, p := range pods {
-		e, _ := PodStatus(namespace, p)
+		e, _ := k.PodStatus(namespace, p)
 		if e == nil || e.ContainerStatuses == nil || len(e.ContainerStatuses) == 0 {
 			return false, nil
 		}
@@ -121,7 +121,7 @@ func (k *Kubectl) WaitNamespacePodsDelete(namespace string) error {
 
 // checkNamespacePodsDeleted checks if there is no more pod available in the given namespace.
 func (k *Kubectl) checkNamespacePodsDeleted(namespace string) (bool, error) {
-	pods, err := GetPodNames(namespace, "")
+	pods, err := k.GetPodNames(namespace, "")
 	if err != nil {
 		return false, err
 	}
