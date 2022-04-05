@@ -90,12 +90,12 @@ func (k *Kubectl) GetPodNames(namespace string, selector string) ([]string, erro
 // WaitForNamespaceWithPod blocks until pods matching the selector are available in the specified namespace. It fails after the timeout.
 func (k *Kubectl) WaitForNamespaceWithPod(namespace string, labelName string) error {
 	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
-		return k.NamespaceWithPodExists(namespace, labelName)
+		return k.NamespaceWithReadyPod(namespace, labelName)
 	})
 }
 
-// NamespaceWithPodExists returns true if pods by that label are present in the given namespace
-func (k *Kubectl) NamespaceWithPodExists(namespace string, labelName string) (bool, error) {
+// NamespaceWithReadyPod returns true if pods by that label are present in the given namespace
+func (k *Kubectl) NamespaceWithReadyPod(namespace string, labelName string) (bool, error) {
 	pods, err := k.GetPodNames(namespace, labelName)
 	if err != nil {
 		return false, err
