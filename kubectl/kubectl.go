@@ -571,6 +571,13 @@ func GetData(namespace string, resourceName string, name string, templatePath st
 	return []byte{}, errors.Wrapf(err, "Output is empty for %s with template Path %s.", name, templatePath)
 }
 
+// Run allow to control kubectl directly
+func Run(s ...string) (string, error) {
+	out, err := runBinary(kubeCtlCmd, s...)
+	msg := string(out)
+	return msg, err
+}
+
 // GetCRDs returns all CRDs
 func GetCRDs() (*ClusterCrd, error) {
 	customResource := &ClusterCrd{}
