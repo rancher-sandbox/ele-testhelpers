@@ -87,6 +87,72 @@ func (k *Kubectl) GetPodNames(namespace string, selector string) ([]string, erro
 	return namesR, nil
 }
 
+// WaitForNamespaceWithPod blocks until pods matching the selector are available in the specified namespace. It fails after the timeout.
+func (k *Kubectl) WaitForNamespaceWithPod(namespace string, labelName string) error {
+	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+		return k.NamespaceWithReadyPod(namespace, labelName)
+	})
+}
+
+// NamespaceWithReadyPod returns true if pods by that label are present in the given namespace
+func (k *Kubectl) NamespaceWithReadyPod(namespace string, labelName string) (bool, error) {
+	pods, err := k.GetPodNames(namespace, labelName)
+	if err != nil {
+		return false, err
+	}
+	for _, p := range pods {
+		e, _ := k.PodStatus(namespace, p)
+		if e == nil || e.ContainerStatuses == nil || len(e.ContainerStatuses) == 0 {
+			return false, nil
+		}
+		for _, s := range e.ContainerStatuses {
+			if !s.Ready {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+// WaitNamespacePodsDelete blocks until pods are still available in the given namespace. It fails after the timeout.
+func (k *Kubectl) WaitNamespacePodsDelete(namespace string) error {
+	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+		return k.checkNamespacePodsDeleted(namespace)
+	})
+}
+
+// checkNamespacePodsDeleted checks if there is no more pod available in the given namespace.
+func (k *Kubectl) checkNamespacePodsDeleted(namespace string) (bool, error) {
+	pods, err := k.GetPodNames(namespace, "")
+	if err != nil {
+		return false, err
+	}
+
+	if len(pods) <= 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+// WaitForNamespaceDelete blocks while the namespace is available. It fails after the timeout.
+func (k *Kubectl) WaitForNamespaceDelete(namespace string) error {
+	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+		return k.checkNamespaceDeleted(namespace)
+	})
+}
+
+// checkNamespaceDeleted checks if the namespace is terminated
+func (k *Kubectl) checkNamespaceDeleted(namespace string) (bool, error) {
+	phase, err := GetData(namespace, "namespace", namespace, `jsonpath={.status.phase}`)
+	if err != nil {
+		return false, err
+	}
+	if string(phase) == "" {
+		return true, nil
+	}
+	return false, nil
+}
+
 // WaitForPod blocks until the pod is available. It fails after the timeout.
 func (k *Kubectl) WaitForPod(namespace string, labelName string, podName string) error {
 	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
@@ -94,14 +160,14 @@ func (k *Kubectl) WaitForPod(namespace string, labelName string, podName string)
 	})
 }
 
-// WaitForPodDelete blocks until the pod is available. It fails after the timeout.
+// WaitForPodDelete blocks while the pod is available. It fails after the timeout.
 func (k *Kubectl) WaitForPodDelete(namespace string, podName string) error {
 	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
 		return k.checkPodDeleted(namespace, podName)
 	})
 }
 
-// checkPodTerminateLabelFilter checks is the pod status is terminated
+// checkPodTerminateLabelFilter checks if the pod status is terminated
 func (k *Kubectl) checkPodDeleted(namespace string, name string) (bool, error) {
 	out, err := runBinary(kubeCtlCmd, "--namespace", namespace, "get", "pod", name)
 	msg := string(out)
