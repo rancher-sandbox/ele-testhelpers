@@ -44,7 +44,7 @@ type Kubectl struct {
 	Log          *zap.SugaredLogger
 	Namespace    string
 	PollTimeout  time.Duration
-	pollInterval time.Duration
+	PollInterval time.Duration
 }
 
 // NewKubectl returns a new CfOperatorkubectl command
@@ -52,7 +52,7 @@ func New() *Kubectl {
 	return &Kubectl{
 		Namespace:    "",
 		PollTimeout:  300 * time.Second,
-		pollInterval: 500 * time.Millisecond,
+		PollInterval: 500 * time.Millisecond,
 	}
 }
 
@@ -89,7 +89,7 @@ func (k *Kubectl) GetPodNames(namespace string, selector string) ([]string, erro
 
 // WaitForNamespaceWithPod blocks until pods matching the selector are available in the specified namespace. It fails after the timeout.
 func (k *Kubectl) WaitForNamespaceWithPod(namespace string, labelName string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.NamespaceWithReadyPod(namespace, labelName)
 	})
 }
@@ -116,7 +116,7 @@ func (k *Kubectl) NamespaceWithReadyPod(namespace string, labelName string) (boo
 
 // WaitNamespacePodsDelete blocks until pods are still available in the given namespace. It fails after the timeout.
 func (k *Kubectl) WaitNamespacePodsDelete(namespace string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.checkNamespacePodsDeleted(namespace)
 	})
 }
@@ -136,7 +136,7 @@ func (k *Kubectl) checkNamespacePodsDeleted(namespace string) (bool, error) {
 
 // WaitForNamespaceDelete blocks while the namespace is available. It fails after the timeout.
 func (k *Kubectl) WaitForNamespaceDelete(namespace string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.checkNamespaceDeleted(namespace)
 	})
 }
@@ -155,14 +155,14 @@ func (k *Kubectl) checkNamespaceDeleted(namespace string) (bool, error) {
 
 // WaitForPod blocks until the pod is available. It fails after the timeout.
 func (k *Kubectl) WaitForPod(namespace string, labelName string, podName string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.PodExists(namespace, labelName, podName)
 	})
 }
 
 // WaitForPodDelete blocks while the pod is available. It fails after the timeout.
 func (k *Kubectl) WaitForPodDelete(namespace string, podName string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.checkPodDeleted(namespace, podName)
 	})
 }
@@ -208,7 +208,7 @@ func (k *Kubectl) PodStatus(namespace string, podName string) (*PodStatus, error
 
 // WaitForService blocks until the service is available. It fails after the timeout.
 func (k *Kubectl) WaitForService(namespace string, serviceName string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.ServiceExists(namespace, serviceName)
 	})
 }
@@ -239,7 +239,7 @@ func (k *Kubectl) Exists(namespace, resource, name string) (bool, error) {
 
 // WaitForSecret blocks until the secret is available. It fails after the timeout.
 func (k *Kubectl) WaitForSecret(namespace string, secretName string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.SecretExists(namespace, secretName)
 	})
 }
@@ -261,7 +261,7 @@ func (k *Kubectl) SecretExists(namespace string, secretName string) (bool, error
 
 // WaitForPVC blocks until the pvc is available. It fails after the timeout.
 func (k *Kubectl) WaitForPVC(namespace string, pvcName string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		return k.pvcExists(namespace, pvcName)
 	})
 }
@@ -283,7 +283,7 @@ func (k *Kubectl) pvcExists(namespace string, pvcName string) (bool, error) {
 
 // Wait waits for the condition on the resource using kubectl command
 func (k *Kubectl) Wait(namespace string, requiredStatus string, resourceName string, customTimeout time.Duration) error {
-	err := wait.PollImmediate(k.pollInterval, customTimeout, func() (bool, error) {
+	err := wait.PollImmediate(k.PollInterval, customTimeout, func() (bool, error) {
 		return k.checkWait(namespace, requiredStatus, resourceName)
 	})
 
@@ -310,15 +310,15 @@ func (k *Kubectl) checkWait(namespace string, requiredStatus string, resourceNam
 // WaitLabelFilter waits for the condition on the resource based on label using kubectl command
 func (k *Kubectl) WaitLabelFilter(namespace string, requiredStatus string, resourceName string, labelName string) error {
 	if requiredStatus == "complete" {
-		return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+		return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 			return k.checkPodCompleteLabelFilter(namespace, labelName)
 		})
 	} else if requiredStatus == "terminate" {
-		return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+		return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 			return k.checkPodTerminateLabelFilter(namespace, labelName)
 		})
 	} else if requiredStatus == "ready" {
-		return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+		return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 			return k.checkPodReadyLabelFilter(namespace, resourceName, labelName, requiredStatus)
 		})
 	}
@@ -532,7 +532,7 @@ func RunCommandWithOutput(namespace string, podName string, commandInPod string)
 
 // WaitForData blocks until the specified data is available. It fails after the timeout.
 func (k *Kubectl) WaitForData(namespace string, resourceName string, name string, template string, expectation string) error {
-	return wait.PollImmediate(k.pollInterval, k.PollTimeout, func() (bool, error) {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 		result, err := GetData(namespace, resourceName, name, template)
 		if err != nil {
 			return false, err
