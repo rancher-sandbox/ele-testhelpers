@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/pkg/errors"
 	wait "github.com/rancher-sandbox/ele-testhelpers/helpers"
 	"go.uber.org/zap"
@@ -562,6 +564,26 @@ func writeTemporaryYAML(v interface{}) (string, error) {
 	}
 
 	return tmpfile.Name(), nil
+}
+
+func GetObject(name, namespace, resourceType string, obj interface{}) (err error) {
+	r, err := GetData(namespace, resourceType, name, `jsonpath={}`)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(r, obj)
+}
+
+// EventuallyPodMatch uses ginkgo/gomega matcher to satisfy against a namespace/label pod
+func (k *Kubectl) EventuallyPodMatch(namespace, label string, timeout, poll time.Duration, mm OmegaMatcher) {
+	EventuallyWithOffset(1, func() []string {
+		pods, err := k.GetPodNames(namespace, label)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return pods
+	}, timeout, poll).Should(mm)
 }
 
 // ApplyYAML applies arbitrary interfaces with kubectl.
