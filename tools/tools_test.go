@@ -34,7 +34,7 @@ var _ = Describe("Tools tests", func() {
 
 			// Check error handling
 			file, err = tools.GetFiles("..", "foo")
-			Expect(err).Should(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(file).To(BeNil())
 		})
 
