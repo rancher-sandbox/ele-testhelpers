@@ -5,7 +5,7 @@ import "time"
 // Pod is a collection of containers that can run on a host. This resource is created
 // by clients and scheduled onto hosts.
 type Pod struct {
-	APIVersion string    `yaml:"apiVersion" yaml:"apiVersion"`
+	APIVersion string    `yaml:"apiVersion"`
 	Kind       string    `yaml:"kind,omitempty"`
 	Metadata   Metadata  `yaml:"metadata"`
 	Spec       PodSpec   `yaml:"spec"`
