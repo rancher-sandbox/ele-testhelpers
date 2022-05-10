@@ -16,7 +16,8 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: '~1.17'
-      - uses: actions/cache@v3
+      - name: Configure cache
+        uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -24,7 +25,8 @@ jobs:
           key: ${{ runner.os }}-test-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-test-go-${{ hashFiles('**/go.sum') }}
-      - uses: engineerd/setup-kind@v0.5.0
+      - name: Install Kind
+        uses: engineerd/setup-kind@v0.5.0
         with:
           version: "v0.11.1"
       - name: Run tests

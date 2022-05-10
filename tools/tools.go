@@ -17,6 +17,7 @@ limitations under the License.
 package tools
 
 import (
+	"bytes"
 	"crypto/tls"
 	"io"
 	"io/ioutil"
@@ -25,6 +26,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
 )
 
 func GetFileFromURL(url string, fileName string, skipVerify bool) error {
@@ -84,6 +88,42 @@ func Sed(oldValue, newValue, filePath string) error {
 
 	err = ioutil.WriteFile(filePath, fileData, mode)
 	return err
+}
+
+func SshRun(userName, userPassword, server, cmd string) (string, error) {
+	// Define ssh connection
+	config := &ssh.ClientConfig{
+		User: userName,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(userPassword),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	client, err := ssh.Dial("tcp", server+":22", config)
+	if err != nil {
+		// Failed to dial
+		return "", err
+	}
+
+	// Open a client session
+	session, err := client.NewSession()
+	if err != nil {
+		// Failed to create session
+		return "", err
+	}
+	defer session.Close()
+
+	// Execute the command on the opened session
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	session.Stdout = &stdout
+	session.Stderr = &stderr
+	if err := session.Run(cmd); err != nil {
+		// Failed to execute the command
+		return "", errors.Wrapf(err, stderr.String())
+	}
+	return stdout.String(), nil
 }
 
 func HTTPShare(dir string, port int) error {

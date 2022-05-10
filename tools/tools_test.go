@@ -51,5 +51,47 @@ var _ = Describe("Tools tests", func() {
 			err = tools.Sed("#.*", value, "foo")
 			Expect(err).To(HaveOccurred())
 		})
+
+		By("Checking SshRun function", func() {
+			userName := "testuser"
+			userPassword := "testpassword"
+			server := "localhost"
+			testCmd := "uname -a"
+
+			// Check connection without sshd started
+			_, err := tools.SshRun(userName, userPassword, server, testCmd)
+			Expect(err).To(HaveOccurred())
+
+			// Start sshd
+			err = exec.Command("sudo", "mkdir", "-p", "/run/sshd").Run()
+			Expect(err).NotTo(HaveOccurred())
+			err = exec.Command("sudo", "ssh-keygen", "-A").Run()
+			Expect(err).NotTo(HaveOccurred())
+			err = exec.Command("sudo", "/usr/sbin/sshd").Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check connection without 'testuser' configured
+			_, err = tools.SshRun(userName, userPassword, server, testCmd)
+			Expect(err).To(HaveOccurred())
+
+			// Add 'testuser'
+			err = exec.Command("sudo", "useradd", userName).Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Use 'sed' instead of 'tools.Sed' because root access
+			// is needed and it's easier with 'sudo'
+			userShadow := userName + ":$6$X7HdGuscUQ.XW6dW$B8rTHpY2bZJKyPebFn20fuj0oiLj3D9L557tTBbZ2ZycuIT23UOnjxwgQEki3//wK0/RKmXeOYPHbYhregyfu1:19122:0:99999:7:::"
+			regex := "s|^" + userName + ":.*|" + userShadow + "|"
+			err = exec.Command("sudo", "sed", "-i", regex, "/etc/shadow").Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check a working connection
+			_, err = tools.SshRun(userName, userPassword, server, testCmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check a unknown command
+			_, err = tools.SshRun(userName, userPassword, server, "foo")
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })
