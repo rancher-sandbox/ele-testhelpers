@@ -18,6 +18,7 @@ package tools
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"io"
 	"io/ioutil"
@@ -26,9 +27,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
 
+	scp "github.com/bramvdbogaerde/go-scp"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh"
+	ssh "golang.org/x/crypto/ssh"
 )
 
 func GetFileFromURL(url string, fileName string, skipVerify bool) error {
@@ -90,24 +93,46 @@ func Sed(oldValue, newValue, filePath string) error {
 	return err
 }
 
-func RunSSH(userName, userPassword, server, cmd string) (string, error) {
-	// Define ssh connection
-	config := &ssh.ClientConfig{
-		User: userName,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(userPassword),
-		},
+type Client struct {
+	Host     string
+	Username string
+	Password string
+}
+
+func (c *Client) clientConfig() *ssh.ClientConfig {
+	sshConfig := &ssh.ClientConfig{
+		User:            c.Username,
+		Auth:            []ssh.AuthMethod{ssh.Password(c.Password)},
+		Timeout:         30 * time.Second,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	client, err := ssh.Dial("tcp", server+":22", config)
+	return sshConfig
+}
+
+func (c *Client) connectToHost() (*ssh.Client, error) {
+	// Define ssh connection
+	sshConfig := c.clientConfig()
+
+	// Connect to client
+	sshClient, err := ssh.Dial("tcp", c.Host, sshConfig)
 	if err != nil {
-		// Failed to dial
-		return "", err
+		return nil, err
 	}
 
+	return sshClient, nil
+}
+
+func (c *Client) RunSSH(cmd string) (string, error) {
+	sshClient, err := c.connectToHost()
+	if err != nil {
+		// Failed to connect
+		return "", err
+	}
+	defer sshClient.Close()
+
 	// Open a client session
-	session, err := client.NewSession()
+	session, err := sshClient.NewSession()
 	if err != nil {
 		// Failed to create session
 		return "", err
@@ -121,9 +146,36 @@ func RunSSH(userName, userPassword, server, cmd string) (string, error) {
 	session.Stderr = &stderr
 	if err := session.Run(cmd); err != nil {
 		// Failed to execute the command
-		return "", errors.Wrapf(err, stderr.String())
+		return stdout.String(), errors.Wrapf(err, stderr.String())
 	}
 	return stdout.String(), nil
+}
+
+func (c *Client) SendFile(src, dst, permission string) error {
+	// Define ssh connection
+	sshConfig := c.clientConfig()
+
+	// Connect to client
+	scpClient := scp.NewClientWithTimeout(c.Host, sshConfig, 10*time.Second)
+	defer scpClient.Close()
+
+	if err := scpClient.Connect(); err != nil {
+		// Failed to connect
+		return err
+	}
+
+	f, err := os.Open(src)
+	if err != nil {
+		// Failed to open
+		return err
+	}
+	defer f.Close()
+
+	if err := scpClient.CopyFile(context.Background(), f, dst, permission); err != nil {
+		// Failed to copy
+		return err
+	}
+	return nil
 }
 
 func HTTPShare(dir string, port int) error {

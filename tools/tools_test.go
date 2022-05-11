@@ -54,12 +54,15 @@ var _ = Describe("Tools tests", func() {
 
 		By("Checking RunSSH function", func() {
 			userName := "testuser"
-			userPassword := "testpassword"
-			server := "localhost"
 			testCmd := "uname -a"
+			client := &tools.Client{
+				Host:     "localhost:22",
+				Username: userName,
+				Password: "testpassword",
+			}
 
 			// Check connection without sshd started
-			_, err := tools.RunSSH(userName, userPassword, server, testCmd)
+			_, err := client.RunSSH(testCmd)
 			Expect(err).To(HaveOccurred())
 
 			// Start sshd
@@ -71,7 +74,7 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check connection without 'testuser' configured
-			_, err = tools.RunSSH(userName, userPassword, server, testCmd)
+			_, err = client.RunSSH(testCmd)
 			Expect(err).To(HaveOccurred())
 
 			// Add 'testuser'
@@ -86,11 +89,40 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check a working connection
-			_, err = tools.RunSSH(userName, userPassword, server, testCmd)
+			_, err = client.RunSSH(testCmd)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check a unknown command
-			_, err = tools.RunSSH(userName, userPassword, server, "foo")
+			_, err = client.RunSSH("foo")
+			Expect(err).To(HaveOccurred())
+		})
+
+		By("Checking SendFile function", func() {
+			userName := "testuser"
+			client := &tools.Client{
+				Host:     "localhost:22",
+				Username: userName,
+				Password: "testpassword",
+			}
+
+			// Check a working copy
+			err := client.SendFile("../README.md", "/tmp/file.tst", "0644")
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check a non-working copy (bad src)
+			err = client.SendFile("README.md", "/tmp/badfile.tst", "0644")
+			Expect(err).To(HaveOccurred())
+
+			// Check a non-working copy (bad dst)
+			err = client.SendFile("../README.md", "/badtmp/badfile.tst", "0644")
+			Expect(err).To(HaveOccurred())
+
+			// Remove 'testuser'
+			err = exec.Command("sudo", "userdel", "-f", "-r", userName).Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check a non-working copy (non-existent user)
+			err = client.SendFile("../README.md", "/tmp/badfile.tst", "0644")
 			Expect(err).To(HaveOccurred())
 		})
 	})
