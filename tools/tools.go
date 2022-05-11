@@ -90,7 +90,7 @@ func Sed(oldValue, newValue, filePath string) error {
 	return err
 }
 
-func SshRun(userName, userPassword, server, cmd string) (string, error) {
+func RunSSH(userName, userPassword, server, cmd string) (string, error) {
 	// Define ssh connection
 	config := &ssh.ClientConfig{
 		User: userName,

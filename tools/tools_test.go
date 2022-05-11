@@ -52,14 +52,14 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		By("Checking SshRun function", func() {
+		By("Checking RunSSH function", func() {
 			userName := "testuser"
 			userPassword := "testpassword"
 			server := "localhost"
 			testCmd := "uname -a"
 
 			// Check connection without sshd started
-			_, err := tools.SshRun(userName, userPassword, server, testCmd)
+			_, err := tools.RunSSH(userName, userPassword, server, testCmd)
 			Expect(err).To(HaveOccurred())
 
 			// Start sshd
@@ -71,7 +71,7 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check connection without 'testuser' configured
-			_, err = tools.SshRun(userName, userPassword, server, testCmd)
+			_, err = tools.RunSSH(userName, userPassword, server, testCmd)
 			Expect(err).To(HaveOccurred())
 
 			// Add 'testuser'
@@ -86,11 +86,11 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check a working connection
-			_, err = tools.SshRun(userName, userPassword, server, testCmd)
+			_, err = tools.RunSSH(userName, userPassword, server, testCmd)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check a unknown command
-			_, err = tools.SshRun(userName, userPassword, server, "foo")
+			_, err = tools.RunSSH(userName, userPassword, server, "foo")
 			Expect(err).To(HaveOccurred())
 		})
 	})
