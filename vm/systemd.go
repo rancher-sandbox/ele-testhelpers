@@ -14,3 +14,9 @@ func SystemdUnitIsStarted(s string, st *SUT) {
 		ContainSubstring("status=0/SUCCESS"),
 	))
 }
+
+func SystemdUnitIsActive(s string, st *SUT) {
+	out, _ := st.Command(fmt.Sprintf("systemctl is-active %s", s))
+
+	Expect(out).To(Equal("active\n"))
+}
