@@ -240,7 +240,9 @@ func (s *SUT) command(cmd string, timeout bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	session, err := client.NewSession()
 	if err != nil {
@@ -258,7 +260,7 @@ func (s *SUT) command(cmd string, timeout bool) (string, error) {
 // Reboot reboots the system under test
 func (s *SUT) Reboot(t ...int) {
 	By("Reboot")
-	s.command("reboot", true)
+	_, _ = s.command("reboot", true)
 	time.Sleep(10 * time.Second)
 	s.EventuallyConnects(t...)
 }
@@ -289,7 +291,9 @@ func (s *SUT) SendFile(src, dst, permission string) error {
 	}
 
 	defer scpClient.Close()
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	if err := scpClient.CopyFile(context.TODO(), f, dst, permission); err != nil {
 		return err
@@ -407,7 +411,9 @@ func (s SUT) GatherLog(logPath string) {
 	// Close the file after it has been copied
 	// Close client connection after the file has been copied
 	defer scpClient.Close()
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	err = scpClient.CopyFromRemote(context.TODO(), f, logPath)
 
@@ -451,7 +457,7 @@ func (s *SUT) EjectCOSCD() {
 func (s *SUT) RestoreCOSCD() {
 	By("Restoring the CD")
 	out, err := exec.Command("bash", "-c", fmt.Sprintf("VBoxManage storageattach 'test' --storagectl 'sata controller' --port 1 --device 0 --type dvddrive --medium %s --forceunmount", s.CDLocation)).CombinedOutput()
-	fmt.Printf(string(out))
+	fmt.Print(string(out))
 	Expect(err).To(BeNil())
 }
 
@@ -461,11 +467,11 @@ func bash(s string) (string, error) {
 }
 
 func (s *SUT) PowerOff() {
-	bash(fmt.Sprintf(`VBoxManage controlvm "%s" poweroff`, s.MachineID))
+	_, _ = bash(fmt.Sprintf(`VBoxManage controlvm "%s" poweroff`, s.MachineID))
 }
 
 func (s *SUT) Start() {
-	bash(fmt.Sprintf(`VBoxManage startvm "%s" --type headless`, s.MachineID))
+	_, _ = bash(fmt.Sprintf(`VBoxManage startvm "%s" --type headless`, s.MachineID))
 }
 
 func (s *SUT) Snapshot() error {
@@ -501,16 +507,16 @@ func DialWithDeadline(network string, addr string, config *ssh.ClientConfig, tim
 		return nil, err
 	}
 	if config.Timeout > 0 {
-		conn.SetReadDeadline(time.Now().Add(config.Timeout))
-		conn.SetWriteDeadline(time.Now().Add(config.Timeout))
+		_ = conn.SetReadDeadline(time.Now().Add(config.Timeout))
+		_ = conn.SetWriteDeadline(time.Now().Add(config.Timeout))
 	}
 	c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
 	if err != nil {
 		return nil, err
 	}
 	if !timeout {
-		conn.SetReadDeadline(time.Time{})
-		conn.SetWriteDeadline(time.Time{})
+		_ = conn.SetReadDeadline(time.Time{})
+		_ = conn.SetWriteDeadline(time.Time{})
 	}
 
 	go func() {
