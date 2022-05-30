@@ -1,3 +1,4 @@
+//nolint:goheader
 /*
 Copyright © 2021 Cloudfoundry (https://github.com/cloudfoundry-incubator/quarks-utils)
 Copyright © 2022 SUSE LLC
@@ -28,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 
 	"github.com/pkg/errors"
 	wait "github.com/rancher-sandbox/ele-testhelpers/helpers"
@@ -49,7 +50,7 @@ type Kubectl struct {
 	PollInterval time.Duration
 }
 
-// NewKubectl returns a new CfOperatorkubectl command
+// New returns a new Kubectl command
 func New() *Kubectl {
 	return &Kubectl{
 		Namespace:    "",
@@ -79,7 +80,7 @@ func (k *Kubectl) GetPodNames(namespace string, selector string) ([]string, erro
 		return []string{}, err
 	}
 	names := strings.Split(string(out), " ")
-	namesR := []string{}
+	var namesR []string
 	for _, n := range names {
 		if n != "" {
 			namesR = append(namesR, n)
@@ -434,7 +435,7 @@ func DeleteNamespace(ns string) error {
 func Create(namespace string, yamlFilePath string) error {
 	_, err := runBinary(kubeCtlCmd, "--namespace", namespace, "create", "-f", yamlFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "Creating yaml spec %s failed.", yamlFilePath)
+		return errors.Wrapf(err, "creating yaml spec %s failed", yamlFilePath)
 	}
 	return nil
 }
@@ -449,7 +450,7 @@ func CreateSecretFromLiteral(namespace string, secretName string, literalValues 
 
 	_, err := runBinary(kubeCtlCmd, args...)
 	if err != nil {
-		return errors.Wrapf(err, "Creating secret %s failed from literal value.", secretName)
+		return errors.Wrapf(err, "creating secret %s failed from literal value", secretName)
 	}
 	return nil
 }
@@ -487,7 +488,7 @@ func DeleteResource(namespace string, resourceName string, name string) error {
 		if strings.Contains(string(out), "Error from server (NotFound)") {
 			return nil
 		}
-		return errors.Wrapf(err, "Deleting resource %s failed. %s", resourceName, string(out))
+		return errors.Wrapf(err, "deleting resource %s failed %s", resourceName, string(out))
 	}
 	return nil
 }
@@ -496,7 +497,7 @@ func DeleteResource(namespace string, resourceName string, name string) error {
 func DeleteLabelFilter(namespace string, resourceName string, labelName string) error {
 	_, err := runBinary(kubeCtlCmd, "--namespace", namespace, "delete", resourceName, "-l", labelName)
 	if err != nil {
-		return errors.Wrapf(err, "Deleting resource %s with label %s failed.", resourceName, labelName)
+		return errors.Wrapf(err, "deleting resource %s with label %s failed", resourceName, labelName)
 	}
 	return nil
 }
@@ -576,8 +577,8 @@ func GetObject(name, namespace, resourceType string, obj interface{}) (err error
 }
 
 // EventuallyPodMatch uses ginkgo/gomega matcher to satisfy against a namespace/label pod
-func (k *Kubectl) EventuallyPodMatch(namespace, label string, timeout, poll time.Duration, mm OmegaMatcher) {
-	EventuallyWithOffset(1, func() []string {
+func (k *Kubectl) EventuallyPodMatch(namespace, label string, timeout, poll time.Duration, mm gomega.OmegaMatcher) {
+	gomega.EventuallyWithOffset(1, func() []string {
 		pods, err := k.GetPodNames(namespace, label)
 		if err != nil {
 			fmt.Println(err)
@@ -651,12 +652,12 @@ func GetData(namespace string, resourceName string, name string, templatePath st
 		if strings.Contains(msg, "Error from server (NotFound)") {
 			return []byte{}, nil
 		}
-		return []byte{}, errors.Wrapf(err, "Getting  %s failed with template Path %s.", name, templatePath)
+		return []byte{}, errors.Wrapf(err, "getting  %s failed with template Path %s", name, templatePath)
 	}
 	if len(string(out)) > 0 {
 		return out, nil
 	}
-	return []byte{}, errors.Wrapf(err, "Output is empty for %s with template Path %s.", name, templatePath)
+	return []byte{}, errors.Wrapf(err, "output is empty for %s with template Path %s", name, templatePath)
 }
 
 // Run allow to control kubectl directly

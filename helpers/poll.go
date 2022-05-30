@@ -1,3 +1,4 @@
+//nolint:goheader
 /*
 Copyright 2014 The Kubernetes Authors.
 

@@ -1,3 +1,17 @@
+/*
+Copyright © 2022 SUSE LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package vm
 
 import (
@@ -35,6 +49,7 @@ const (
 	Ext2 = "ext2"
 	Ext3 = "ext3"
 	Ext4 = "ext4"
+	Cos  = "cos"
 )
 
 // DiskLayout is the struct that contains the disk output from lsblk
@@ -77,7 +92,7 @@ func NewSUT() *SUT {
 	}
 	pass := os.Getenv("COS_PASS")
 	if pass == "" {
-		pass = "cos"
+		pass = Cos
 	}
 
 	host := os.Getenv("COS_HOST")
@@ -120,7 +135,7 @@ func (s *SUT) ChangeBoot(b int) error {
 
 	switch b {
 	case Active:
-		bootEntry = "cos"
+		bootEntry = Cos
 	case Passive:
 		bootEntry = "fallback"
 	case Recovery:
@@ -139,7 +154,7 @@ func (s *SUT) ChangeBootOnce(b int) error {
 
 	switch b {
 	case Active:
-		bootEntry = "cos"
+		bootEntry = Cos
 	case Passive:
 		bootEntry = "fallback"
 	case Recovery:
