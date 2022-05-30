@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/xml"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,6 +31,30 @@ import (
 	"github.com/pkg/errors"
 	ssh "golang.org/x/crypto/ssh"
 )
+
+type Host struct {
+	XMLName xml.Name `xml:"host"`
+	Mac     string   `xml:"mac,attr"`
+	Name    string   `xml:"name,attr"`
+	IP      string   `xml:"ip,attr"`
+}
+
+func GetHostNetConfig(regex, filePath string) (*Host, error) {
+	fileData, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	r := regexp.MustCompile(regex)
+	find := r.FindString(string(fileData))
+
+	host := &Host{}
+	if err = xml.Unmarshal([]byte(find), host); err != nil {
+		return nil, err
+	}
+
+	return host, nil
+}
 
 func GetFileFromURL(url string, fileName string, skipVerify bool) error {
 	if !skipVerify {
@@ -69,7 +93,7 @@ func GetFiles(dir string, pattern string) ([]string, error) {
 
 // Sed code partially from https://forum.golangbridge.org/t/using-sed-in-golang/23526/16
 func Sed(oldValue, newValue, filePath string) error {
-	fileData, err := ioutil.ReadFile(filePath)
+	fileData, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
@@ -87,7 +111,7 @@ func Sed(oldValue, newValue, filePath string) error {
 	fileString = regex.ReplaceAllString(fileString, newValue)
 	fileData = []byte(fileString)
 
-	err = ioutil.WriteFile(filePath, fileData, mode)
+	err = os.WriteFile(filePath, fileData, mode)
 	return err
 }
 
