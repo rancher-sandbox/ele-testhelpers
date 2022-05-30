@@ -92,7 +92,7 @@ func NewSUT() *SUT {
 
 	testVersion := os.Getenv("TEST_VERSION")
 	if testVersion == "" {
-		testVersion = "0.8.10"
+		testVersion = "0.8.14-1"
 	}
 
 	var timeout = 180
