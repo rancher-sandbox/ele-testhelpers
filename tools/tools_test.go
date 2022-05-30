@@ -10,6 +10,18 @@ import (
 
 var _ = Describe("Tools tests", func() {
 	It("Test tools helper functions", func() {
+		By("Checking GetHostNetConfig function", func() {
+			dataFile := "assets/host-test.xml"
+			vmName := "node02"
+			regex := ".*name='" + vmName + "'.*"
+
+			out, err := tools.GetHostNetConfig(regex, dataFile)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out.Name).To(Equal(vmName))
+			Expect(out.Mac).To(Equal("52:54:00:00:00:02"))
+			Expect(out.IP).To(Equal("192.168.122.12"))
+		})
+
 		By("Checking GetFileFromURL function", func() {
 			fileName := "check-file"
 			err := tools.GetFileFromURL("https://raw.githubusercontent.com/rancher-sandbox/ele-testhelpers/main/README.md", fileName, false)
