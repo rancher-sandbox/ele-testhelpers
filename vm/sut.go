@@ -28,8 +28,8 @@ import (
 
 	"github.com/bramvdbogaerde/go-scp"
 
-	. "github.com/onsi/ginkgo" //nolint:revive
-	. "github.com/onsi/gomega" //nolint:revive
+	. "github.com/onsi/ginkgo/v2" //nolint:revive
+	. "github.com/onsi/gomega"    //nolint:revive
 	"github.com/pkg/errors"
 	ssh "golang.org/x/crypto/ssh"
 )
@@ -545,4 +545,20 @@ func DialWithDeadline(network string, addr string, config *ssh.ClientConfig, tim
 		}
 	}()
 	return ssh.NewClient(c, chans, reqs), nil
+}
+
+// ElementalCmd will run the default elemental binary with some default flags useful for testing and the given args
+// it allows overriding the default args just in case
+func (s SUT) ElementalCmd(args ...string) string {
+	eleCommand := "elemental"
+	// Allow overriding the default args
+	if os.Getenv("ELEMENTAL_CMD_ARGS") == "" {
+		eleCommand = strings.Join([]string{eleCommand, "--debug", "--logfile", "/tmp/elemental.log"}, " ")
+	} else {
+		eleCommand = strings.Join([]string{eleCommand, os.Getenv("ELEMENTAL_CMD_ARGS")}, " ")
+	}
+	for _, arg := range args {
+		eleCommand = strings.Join([]string{eleCommand, arg}, " ")
+	}
+	return eleCommand
 }
