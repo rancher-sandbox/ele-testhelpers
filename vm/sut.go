@@ -570,9 +570,13 @@ func (s *SUT) GetArtifactsRepo() string {
 		} else {
 			artifactRepo = "quay.io/costoolkit/releases-teal"
 		}
-
 	}
 	// Set it in case it needs to be reused
 	s.artifactsRepo = artifactRepo
 	return artifactRepo
+}
+
+// GetSystemURIDocker gets the commonly used --system.uri value for testing
+func (s SUT) GetSystemURIDocker() string {
+	return fmt.Sprintf("docker:%s:cos-system-%s", s.GetArtifactsRepo(), s.TestVersion)
 }
