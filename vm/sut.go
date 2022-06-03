@@ -78,7 +78,7 @@ type SUT struct {
 	Username      string
 	Password      string
 	Timeout       int
-	ArtifactsRepo string
+	artifactsRepo string
 	TestVersion   string
 	CDLocation    string
 	MachineID     string
@@ -100,11 +100,6 @@ func NewSUT() *SUT {
 		host = "127.0.0.1:2222"
 	}
 
-	artifactRepo := os.Getenv("ARTIFACTS_REPO")
-	if artifactRepo == "" {
-		artifactRepo = "quay.io/costoolkit/releases-teal"
-	}
-
 	testVersion := os.Getenv("TEST_VERSION")
 	if testVersion == "" {
 		testVersion = "0.8.14-1"
@@ -123,7 +118,7 @@ func NewSUT() *SUT {
 		Password:      pass,
 		MachineID:     "test",
 		Timeout:       timeout,
-		ArtifactsRepo: artifactRepo,
+		artifactsRepo: "",
 		TestVersion:   testVersion,
 		CDLocation:    "",
 	}
@@ -561,4 +556,23 @@ func (s SUT) ElementalCmd(args ...string) string {
 		eleCommand = strings.Join([]string{eleCommand, arg}, " ")
 	}
 	return eleCommand
+}
+
+func (s *SUT) GetArtifactsRepo() string {
+	// Use it as kind of cache in case we call it several times, so we avoid multiple ssh calls
+	if s.artifactsRepo != "" {
+		return s.artifactsRepo
+	}
+	artifactRepo := os.Getenv("ARTIFACTS_REPO")
+	if artifactRepo == "" {
+		if s.GetArch() == "aarch64" {
+			artifactRepo = "quay.io/costoolkit/releases-teal-arm64"
+		} else {
+			artifactRepo = "quay.io/costoolkit/releases-teal"
+		}
+
+	}
+	// Set it in case it needs to be reused
+	s.artifactsRepo = artifactRepo
+	return artifactRepo
 }
