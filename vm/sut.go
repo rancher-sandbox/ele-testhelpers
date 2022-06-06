@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -137,7 +136,7 @@ func (s *SUT) ChangeBoot(b int) error {
 		bootEntry = "recovery"
 	}
 
-	_, err := s.command(fmt.Sprintf(grubSwap, bootEntry), false)
+	_, err := s.command(fmt.Sprintf(grubSwap, bootEntry))
 	Expect(err).ToNot(HaveOccurred())
 
 	return nil
@@ -156,7 +155,7 @@ func (s *SUT) ChangeBootOnce(b int) error {
 		bootEntry = "recovery"
 	}
 
-	_, err := s.command(fmt.Sprintf(grubSwapOnce, bootEntry), false)
+	_, err := s.command(fmt.Sprintf(grubSwapOnce, bootEntry))
 	Expect(err).ToNot(HaveOccurred())
 
 	return nil
@@ -174,7 +173,7 @@ func (s *SUT) Reset() {
 	}
 
 	By("Running elemental reset")
-	out, err := s.command("elemental reset", false)
+	out, err := s.command("elemental reset")
 	Expect(err).ToNot(HaveOccurred())
 	Expect(out).Should(ContainSubstring("Installing"))
 
@@ -185,7 +184,7 @@ func (s *SUT) Reset() {
 
 // BootFrom returns the booting partition of the SUT
 func (s *SUT) BootFrom() int {
-	out, err := s.command("cat /proc/cmdline", false)
+	out, err := s.command("cat /proc/cmdline")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	switch {
@@ -204,7 +203,7 @@ func (s *SUT) BootFrom() int {
 
 // SquashFSRecovery returns true if we are in recovery mode and booting from squashfs
 func (s *SUT) SquashFSRecovery() bool {
-	out, err := s.command("cat /proc/cmdline", false)
+	out, err := s.command("cat /proc/cmdline")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	return strings.Contains(out, "rd.live.squashimg")
@@ -232,7 +231,7 @@ func (s *SUT) EventuallyConnects(t ...int) {
 		dur = t[0]
 	}
 	Eventually(func() error {
-		out, err := s.command("echo ping", true)
+		out, err := s.command("echo ping")
 		if out == "ping\n" {
 			return nil
 		}
@@ -242,11 +241,11 @@ func (s *SUT) EventuallyConnects(t ...int) {
 
 // Command sends a command to the SUIT and waits for reply
 func (s *SUT) Command(cmd string) (string, error) {
-	return s.command(cmd, false)
+	return s.command(cmd)
 }
 
-func (s *SUT) command(cmd string, timeout bool) (string, error) {
-	client, err := s.connectToHost(timeout)
+func (s *SUT) command(cmd string) (string, error) {
+	client, err := s.connectToHost()
 	if err != nil {
 		return "", err
 	}
@@ -270,7 +269,7 @@ func (s *SUT) command(cmd string, timeout bool) (string, error) {
 // Reboot reboots the system under test
 func (s *SUT) Reboot(t ...int) {
 	By("Reboot")
-	_, _ = s.command("reboot", true)
+	_, _ = s.command("reboot")
 	time.Sleep(10 * time.Second)
 	s.EventuallyConnects(t...)
 }
@@ -311,10 +310,10 @@ func (s *SUT) SendFile(src, dst, permission string) error {
 	return nil
 }
 
-func (s *SUT) connectToHost(timeout bool) (*ssh.Client, error) {
+func (s *SUT) connectToHost() (*ssh.Client, error) {
 	sshConfig := s.clientConfig()
 
-	client, err := DialWithDeadline("tcp", s.Host, sshConfig, timeout)
+	client, err := SSHDialTimeout("tcp", s.Host, sshConfig, s.clientConfig().Timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +342,7 @@ func (s SUT) GatherAllLogs() {
 
 	// services
 	for _, ser := range services {
-		out, err := s.command(fmt.Sprintf("journalctl -u %s -o short-iso >> /tmp/%s.log", ser, ser), true)
+		out, err := s.command(fmt.Sprintf("journalctl -u %s -o short-iso >> /tmp/%s.log", ser, ser))
 		if err != nil {
 			fmt.Printf("Error getting journal for service %s: %s\n", ser, err.Error())
 			fmt.Printf("Output from command: %s\n", out)
@@ -357,7 +356,7 @@ func (s SUT) GatherAllLogs() {
 	}
 
 	// dmesg
-	out, err := s.command("dmesg > /tmp/dmesg", true)
+	out, err := s.command("dmesg > /tmp/dmesg")
 	if err != nil {
 		fmt.Printf("Error getting dmesg : %s\n", err.Error())
 		fmt.Printf("Output from command: %s\n", out)
@@ -365,7 +364,7 @@ func (s SUT) GatherAllLogs() {
 	s.GatherLog("/tmp/dmesg")
 
 	// grab full journal
-	out, err = s.command("journalctl -o short-iso > /tmp/journal.log", true)
+	out, err = s.command("journalctl -o short-iso > /tmp/journal.log")
 	if err != nil {
 		fmt.Printf("Error getting full journalctl info : %s\n", err.Error())
 		fmt.Printf("Output from command: %s\n", out)
@@ -373,7 +372,7 @@ func (s SUT) GatherAllLogs() {
 	s.GatherLog("/tmp/journal.log")
 
 	// uname
-	out, err = s.command("uname -a > /tmp/uname.log", true)
+	out, err = s.command("uname -a > /tmp/uname.log")
 	if err != nil {
 		fmt.Printf("Error getting uname info : %s\n", err.Error())
 		fmt.Printf("Output from command: %s\n", out)
@@ -381,12 +380,12 @@ func (s SUT) GatherAllLogs() {
 	s.GatherLog("/tmp/uname.log")
 
 	// disk info
-	out, err = s.command("lsblk -a >> /tmp/disks.log", true)
+	out, err = s.command("lsblk -a >> /tmp/disks.log")
 	if err != nil {
 		fmt.Printf("Error getting disk info : %s\n", err.Error())
 		fmt.Printf("Output from command: %s\n", out)
 	}
-	out, err = s.command("blkid >> /tmp/disks.log", true)
+	out, err = s.command("blkid >> /tmp/disks.log")
 	if err != nil {
 		fmt.Printf("Error getting disk info : %s\n", err.Error())
 		fmt.Printf("Output from command: %s\n", out)
@@ -508,38 +507,6 @@ func (s SUT) GetDiskLayout(disk string) DiskLayout {
 	err = json.Unmarshal([]byte(strings.TrimSpace(out)), &diskLayout)
 	Expect(err).To(BeNil())
 	return diskLayout
-}
-
-// DialWithDeadline Dials SSH with a deadline to avoid Read timeouts
-func DialWithDeadline(network string, addr string, config *ssh.ClientConfig, timeout bool) (*ssh.Client, error) {
-	conn, err := net.DialTimeout(network, addr, config.Timeout)
-	if err != nil {
-		return nil, err
-	}
-	if config.Timeout > 0 {
-		_ = conn.SetReadDeadline(time.Now().Add(config.Timeout))
-		_ = conn.SetWriteDeadline(time.Now().Add(config.Timeout))
-	}
-	c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
-	if err != nil {
-		return nil, err
-	}
-	if !timeout {
-		_ = conn.SetReadDeadline(time.Time{})
-		_ = conn.SetWriteDeadline(time.Time{})
-	}
-
-	go func() {
-		t := time.NewTicker(2 * time.Second)
-		defer t.Stop()
-		for range t.C {
-			_, _, err := c.SendRequest("keepalive@golang.org", true, nil)
-			if err != nil {
-				return
-			}
-		}
-	}()
-	return ssh.NewClient(c, chans, reqs), nil
 }
 
 // ElementalCmd will run the default elemental binary with some default flags useful for testing and the given args
