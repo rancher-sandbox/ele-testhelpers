@@ -330,6 +330,7 @@ func (s SUT) GatherAllLogs() {
 		"cos-setup-network",
 		"cos-setup-reconcile",
 		"cos-setup-rootfs",
+		"cos-immutable-rootfs",
 	}
 
 	logFiles := []string{
