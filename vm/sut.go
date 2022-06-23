@@ -402,9 +402,8 @@ func (s SUT) GatherAllLogs() {
 
 // GatherLog will try to scp the given log from the machine to a local file
 func (s SUT) GatherLog(logPath string) {
-	fmt.Printf("Trying to get file: %s\n", logPath)
 	sshConfig := s.clientConfig()
-	scpClient := scp.NewClientWithTimeout(s.Host, sshConfig, 10*time.Second)
+	scpClient := scp.NewClientWithTimeout(s.Host, sshConfig, 20*time.Second)
 
 	err := scpClient.Connect()
 	if err != nil {
@@ -413,7 +412,6 @@ func (s SUT) GatherLog(logPath string) {
 		return
 	}
 
-	fmt.Printf("Connection to %s established!\n", s.Host)
 	baseName := filepath.Base(logPath)
 	_ = os.Mkdir("logs", 0755)
 
@@ -433,7 +431,6 @@ func (s SUT) GatherLog(logPath string) {
 	}
 	// Change perms so its world readable
 	_ = os.Chmod(fmt.Sprintf("logs/%s", baseName), 0666)
-	fmt.Printf("File %s copied!\n", baseName)
 
 }
 
