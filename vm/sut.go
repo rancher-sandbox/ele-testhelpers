@@ -545,3 +545,8 @@ func (s *SUT) GetArtifactsRepo() string {
 func (s SUT) GetSystemURIDocker() string {
 	return fmt.Sprintf("docker:%s:cos-system-%s", s.GetArtifactsRepo(), s.TestVersion)
 }
+
+// GetRecoveryURIDocker gets the commonly used --recovery-system.uri value for testing
+func (s SUT) GetRecoveryURIDocker() string {
+	return fmt.Sprintf("docker:%s:cos-recovery-%s", s.GetArtifactsRepo(), s.TestVersion)
+}
