@@ -37,11 +37,11 @@ const (
 	grubSwapOnce = "grub2-editenv /oem/grubenv set next_entry=%s"
 	grubSwap     = "grub2-editenv /oem/grubenv set saved_entry=%s"
 
-	Passive     = 0
-	Active      = iota
-	Recovery    = iota
-	LiveCD      = iota
-	UnknownBoot = iota
+	Passive     = "passive"
+	Active      = "active"
+	Recovery    = "recovery"
+	LiveCD      = "liveCD"
+	UnknownBoot = "unknown"
 
 	TimeoutRawDiskTest = 600 // Timeout to connect for recovery_raw_disk_test
 
@@ -123,7 +123,7 @@ func NewSUT() *SUT {
 	}
 }
 
-func (s *SUT) ChangeBoot(b int) error {
+func (s *SUT) ChangeBoot(b string) error {
 
 	var bootEntry string
 
@@ -142,7 +142,7 @@ func (s *SUT) ChangeBoot(b int) error {
 	return nil
 }
 
-func (s *SUT) ChangeBootOnce(b int) error {
+func (s *SUT) ChangeBootOnce(b string) error {
 
 	var bootEntry string
 
@@ -183,7 +183,7 @@ func (s *SUT) Reset() {
 }
 
 // BootFrom returns the booting partition of the SUT
-func (s *SUT) BootFrom() int {
+func (s *SUT) BootFrom() string {
 	out, err := s.command("cat /proc/cmdline")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
