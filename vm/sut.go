@@ -550,3 +550,8 @@ func (s SUT) GetSystemURIDocker() string {
 func (s SUT) GetRecoveryURIDocker() string {
 	return fmt.Sprintf("docker:%s:cos-recovery-%s", s.GetArtifactsRepo(), s.TestVersion)
 }
+
+// AssertBootedFrom asserts that we booted from the proper type and adds a helpful message
+func (s SUT) AssertBootedFrom(b string) {
+	ExpectWithOffset(1, s.BootFrom()).To(Equal(b), "Should have booted from: %s", b)
+}
