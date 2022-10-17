@@ -175,7 +175,7 @@ func (s *SUT) Reset() {
 	By("Running elemental reset")
 	out, err := s.command("elemental reset")
 	Expect(err).ToNot(HaveOccurred())
-	Expect(out).Should(ContainSubstring("Installing"))
+	Expect(out).Should(ContainSubstring("Reset"))
 
 	By("Reboot to active after elemental reset")
 	s.Reboot()
