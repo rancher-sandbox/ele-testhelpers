@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	grubSwapOnce = "grub2-editenv /oem/grubenv set next_entry=%s"
-	grubSwap     = "grub2-editenv /oem/grubenv set saved_entry=%s"
+	grubSwapOnce = "grub2-editenv /oem/grub_oem_env set next_entry=%s"
+	grubSwap     = "grub2-editenv /oem/grub_oem_env set saved_entry=%s"
 
 	Passive     = "passive"
 	Active      = "active"
