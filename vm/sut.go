@@ -304,10 +304,7 @@ func (s *SUT) SendFile(src, dst, permission string) error {
 		_ = f.Close()
 	}()
 
-	if err := scpClient.CopyFile(context.TODO(), f, dst, permission); err != nil {
-		return err
-	}
-	return nil
+	return scpClient.CopyFile(context.TODO(), f, dst, permission)
 }
 
 func (s *SUT) connectToHost() (*ssh.Client, error) {

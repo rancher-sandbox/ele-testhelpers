@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime/debug"
@@ -32,9 +31,10 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/pkg/errors"
-	wait "github.com/rancher-sandbox/ele-testhelpers/helpers"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
+
+	wait "github.com/rancher-sandbox/ele-testhelpers/helpers"
 )
 
 const (
@@ -548,7 +548,7 @@ func (k *Kubectl) WaitForData(namespace string, resourceName string, name string
 }
 
 func writeTemporaryYAML(v interface{}) (string, error) {
-	tmpfile, err := ioutil.TempFile(os.TempDir(), "yaml-")
+	tmpfile, err := os.CreateTemp(os.TempDir(), "yaml-")
 	if err != nil {
 		return "", err
 	}
@@ -568,7 +568,7 @@ func writeTemporaryYAML(v interface{}) (string, error) {
 }
 
 func writeTemporaryJSON(v interface{}) (string, error) {
-	tmpfile, err := ioutil.TempFile(os.TempDir(), "json-")
+	tmpfile, err := os.CreateTemp(os.TempDir(), "json-")
 	if err != nil {
 		return "", err
 	}
