@@ -443,25 +443,25 @@ func (s *SUT) EmptyDisk(disk string) {
 	_, _ = s.Command("sleep 5")
 }
 
-// SetCOSCDLocation gets the location of the iso attached to the vbox vm and stores it for later remount
-func (s *SUT) SetCOSCDLocation() {
+// SetCDLocation gets the location of the iso attached to the vbox vm and stores it for later remount
+func (s *SUT) SetCDLocation() {
 	By("Store CD location")
 	out, err := exec.Command("bash", "-c", "VBoxManage list dvds|grep Location|cut -d ':' -f 2|xargs").CombinedOutput()
 	Expect(err).To(BeNil())
 	s.CDLocation = strings.TrimSpace(string(out))
 }
 
-// EjectCOSCD force removes the DVD so we can boot from disk directly on EFI VMs
-func (s *SUT) EjectCOSCD() {
+// EjectCD force removes the DVD so we can boot from disk directly on EFI VMs
+func (s *SUT) EjectCD() {
 	// first store the cd location
-	s.SetCOSCDLocation()
+	s.SetCDLocation()
 	By("Ejecting the CD")
 	_, err := exec.Command("bash", "-c", "VBoxManage storageattach 'test' --storagectl 'sata controller' --port 1 --device 0 --type dvddrive --medium emptydrive --forceunmount").CombinedOutput()
 	Expect(err).To(BeNil())
 }
 
-// RestoreCOSCD reattaches the cOS iso to the VM
-func (s *SUT) RestoreCOSCD() {
+// RestoreCD reattaches the previously mounted iso to the VM
+func (s *SUT) RestoreCD() {
 	By("Restoring the CD")
 	out, err := exec.Command("bash", "-c", fmt.Sprintf("VBoxManage storageattach 'test' --storagectl 'sata controller' --port 1 --device 0 --type dvddrive --medium %s --forceunmount", s.CDLocation)).CombinedOutput()
 	fmt.Print(string(out))
