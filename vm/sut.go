@@ -334,10 +334,6 @@ func (s SUT) GatherAllLogs() {
 	}
 
 	logFiles := []string{
-		"/tmp/image-mtree-check.log",
-		"/tmp/luet_mtree_failures.log",
-		"/tmp/luet_mtree.log",
-		"/tmp/luet.log",
 		"/tmp/elemental.log",
 	}
 
