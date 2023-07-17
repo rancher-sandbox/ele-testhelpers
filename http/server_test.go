@@ -10,11 +10,9 @@ import (
 )
 
 var _ = Describe("HTTP Server", func() {
-
 	ctx, cancel := context.WithCancel(context.Background())
 	Context("Server", func() {
 		It("serves correctly pages and closes when context is closed", func() {
-
 			Server(ctx, ":9099", "foobar")
 
 			Eventually(func() string {
