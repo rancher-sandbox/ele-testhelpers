@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	scp "github.com/bramvdbogaerde/go-scp"
@@ -208,4 +209,130 @@ func HTTPShare(dir string, port int) error {
 	sPort := strconv.Itoa(port)
 	err := http.ListenAndServe(":"+sPort, nil)
 	return err
+}
+
+/**
+ * Configure a timeout based on TIMEOUT_SCALE env variable
+ * @remarks Multiply a duration with TIMEOUT_SCALE value
+ * @param timeout Initial timeout value
+ * @returns Modified timeout value
+ */
+func SetTimeout(timeout time.Duration) time.Duration {
+	s, set := os.LookupEnv("TIMEOUT_SCALE")
+
+	// Only if TIMEOUT_SCALE is set
+	if set {
+		scale, err := strconv.Atoi(s)
+		if err != nil {
+			return timeout
+		}
+
+		// Return the scaled timeout
+		return timeout * time.Duration(scale)
+	}
+
+	// Don't return error, in the worst case return the initial value
+	// Otherwise an additional step will be needed for some commands (like Eventually)
+	return timeout
+}
+
+/**
+ * Add data to file
+ * @remarks Added data is optional
+ * @param srcFile Source file
+ * @param dstFile Destination file
+ * @param data Data to add at the end of destination file
+ * @returns Nothing or an error
+ */
+func AddDataToFile(srcfile, dstfile string, data []byte) error {
+	// Open source file
+	f, err := os.Open(srcfile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Open/create destination file
+	d, err := os.OpenFile(dstfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+
+	// Copy source to dest
+	if _, err = io.Copy(d, f); err != nil {
+		return err
+	}
+
+	// Add data to dest
+	if _, err = d.Write([]byte(data)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Write data to file
+ * @remarks This function simply writes data to a file
+ * @param dstFile Destination file
+ * @param data Data to write
+ * @returns Nothing or an error
+ */
+func WriteFile(dstfile string, data []byte) error {
+	// Open/create destination file
+	d, err := os.OpenFile(dstfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+
+	// Add data to dest
+	if _, err = d.Write([]byte(data)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Copy file
+ * @remarks This function simply copies a file to another
+ * @param srcFile Source file
+ * @param dstFile Destination file
+ * @returns Nothing or an error
+ */
+func CopyFile(srcFile, dstFile string) error {
+	// Add data to file without adding data(!) is in fact a copy
+	return (AddDataToFile(srcFile, dstFile, []byte("")))
+}
+
+/**
+ * Trim a string
+ * @remarks Remove all from s string after c char
+ * @param s String to trim
+ * @param c Character used as a separator
+ * @returns Trimmed string
+ */
+func TrimStringFromChar(s, c string) string {
+	if idx := strings.Index(s, c); idx != -1 {
+		return s[:idx]
+	}
+
+	return s
+}
+
+/**
+ * Create a temporary file
+ * @remarks Create temporary file with a name based on baseName
+ * @param baseName String to trim
+ * @returns Created filename or an error
+ */
+func CreateTemp(baseName string) (string, error) {
+	t, err := os.CreateTemp("", baseName)
+	if err != nil {
+		return "", err
+	}
+
+	return t.Name(), nil
 }

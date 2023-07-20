@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
+	"github.com/rancher-sandbox/ele-testhelpers/tools"
 	"gopkg.in/yaml.v3"
 )
 
@@ -201,7 +202,8 @@ func CheckPod(k *kubectl.Kubectl, checkList [][]string) error {
  * @returns Filename of created client kubeconfig
  */
 func SetClientKubeConfig(ns, name string) (string, error) {
-	kubeConfig, err := CreateTemp("clientKubeConfig")
+	// Use our internal CreateTemp function!
+	kubeConfig, err := tools.CreateTemp("clientKubeConfig")
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +223,7 @@ func SetClientKubeConfig(ns, name string) (string, error) {
 		os.Remove(kubeConfig)
 		return "", err
 	}
-	err = WriteFile(kubeConfig, data)
+	err = tools.WriteFile(kubeConfig, data)
 	if err != nil {
 		os.Remove(kubeConfig)
 		return "", err
