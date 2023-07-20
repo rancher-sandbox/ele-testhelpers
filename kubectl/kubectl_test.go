@@ -27,7 +27,6 @@ var _ = Describe("MachineRegistration e2e tests", func() {
 					},
 				},
 			})
-
 			Expect(err).ShouldNot(HaveOccurred())
 
 			defer func() {
@@ -36,13 +35,11 @@ var _ = Describe("MachineRegistration e2e tests", func() {
 					fmt.Fprintf(GinkgoWriter, "Error while deleting test pod: %v\n", err)
 				}
 			}()
+
 			Eventually(func() []string {
 				f, _ := k.GetPodNames("default", "")
 				return f
 			}, 10*time.Second, 1*time.Second).Should(ContainElement("test"))
-
 		})
-
 	})
-
 })

@@ -84,7 +84,6 @@ type SUT struct {
 }
 
 func NewSUT() *SUT {
-
 	user := os.Getenv("COS_USER")
 	if user == "" {
 		user = "root"
@@ -124,7 +123,6 @@ func NewSUT() *SUT {
 }
 
 func (s *SUT) ChangeBoot(b string) error {
-
 	var bootEntry string
 
 	switch b {
@@ -143,7 +141,6 @@ func (s *SUT) ChangeBoot(b string) error {
 }
 
 func (s *SUT) ChangeBootOnce(b string) error {
-
 	var bootEntry string
 
 	switch b {
