@@ -16,7 +16,6 @@ var _ = Describe("HTTP Server", func() {
 			Server(ctx, ":9099", "foobar")
 
 			Eventually(func() string {
-
 				str, _ := GetInsecure("http://localhost:9099")
 				//	f, _ := k.GetPodNames("default", "")
 				return str
@@ -25,7 +24,6 @@ var _ = Describe("HTTP Server", func() {
 			cancel()
 
 			Eventually(func() string {
-
 				str, _ := GetInsecure("http://localhost:9099")
 				//	f, _ := k.GetPodNames("default", "")
 				return str

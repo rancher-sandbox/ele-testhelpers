@@ -36,6 +36,7 @@ func Server(ctx context.Context, listenAddr string, content string) {
 			fmt.Printf("Server failed: %s\n", err)
 		}
 	}()
+
 	go func() {
 		<-ctx.Done()
 		srv.Close()
