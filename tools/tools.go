@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -33,30 +33,13 @@ import (
 	ssh "golang.org/x/crypto/ssh"
 )
 
-type Host struct {
-	XMLName xml.Name `xml:"host"`
-	Mac     string   `xml:"mac,attr"`
-	Name    string   `xml:"name,attr"`
-	IP      string   `xml:"ip,attr"`
-}
-
-func GetHostNetConfig(regex, filePath string) (*Host, error) {
-	fileData, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	r := regexp.MustCompile(regex)
-	find := r.FindString(string(fileData))
-
-	host := &Host{}
-	if err = xml.Unmarshal([]byte(find), host); err != nil {
-		return nil, err
-	}
-
-	return host, nil
-}
-
+/**
+ * Get File through HTTP
+ * @param url URL where to download the file
+ * @param fileName of the file to create
+ * @param skipVerify Skip TLS check if needed
+ * @returns Nothing or an error
+ */
 func GetFileFromURL(url string, fileName string, skipVerify bool) error {
 	if !skipVerify {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -79,7 +62,13 @@ func GetFileFromURL(url string, fileName string, skipVerify bool) error {
 	return err
 }
 
-func GetFiles(dir string, pattern string) ([]string, error) {
+/**
+ * Get a list of files
+ * @param dir Directory where to search
+ * @param pattern Search pattern
+ * @returns List of files or an error
+ */
+func GetFilesList(dir string, pattern string) ([]string, error) {
 	files, err := filepath.Glob(dir + "/" + pattern)
 	if err != nil {
 		return nil, err
@@ -92,15 +81,22 @@ func GetFiles(dir string, pattern string) ([]string, error) {
 	return nil, err
 }
 
+/**
+ * Simple sed command
+ * @param oldValue Value or simple regex to modify
+ * @param newValue New value to set
+ * @param file File to modify
+ * @returns Nothing or an error
+ */
 // Sed code partially from https://forum.golangbridge.org/t/using-sed-in-golang/23526/16
-func Sed(oldValue, newValue, filePath string) error {
-	fileData, err := os.ReadFile(filePath)
+func Sed(oldValue, newValue, file string) error {
+	fileData, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
 	// Get file permissions
-	info, err := os.Stat(filePath)
+	info, err := os.Stat(file)
 	if err != nil {
 		return err
 	}
@@ -112,7 +108,7 @@ func Sed(oldValue, newValue, filePath string) error {
 	fileString = regex.ReplaceAllString(fileString, newValue)
 	fileData = []byte(fileString)
 
-	err = os.WriteFile(filePath, fileData, mode)
+	err = os.WriteFile(file, fileData, mode)
 	return err
 }
 
@@ -122,6 +118,13 @@ type Client struct {
 	Password string
 }
 
+/**
+ * Define SSH client
+ * @remarks This function is only used internally, not exported
+ * @returns SSH Client configuration
+ */
+// NOTE: clientConfig does not have unit test as it is
+// used only in connectToHost
 func (c *Client) clientConfig() *ssh.ClientConfig {
 	sshConfig := &ssh.ClientConfig{
 		User:            c.Username,
@@ -133,6 +136,15 @@ func (c *Client) clientConfig() *ssh.ClientConfig {
 	return sshConfig
 }
 
+/**
+ * Connect on the client through SSH
+ * @remarks This function is only used internally, not exported
+ * @param Client is the receiver where to execute the command
+ * @param ssh.Client Client definition to connect to
+ * @returns Pointer to the SSH Client or an error
+ */
+// NOTE: connectToHost does not have unit test as it is
+// used in RunSSH which is already tested
 func (c *Client) connectToHost() (*ssh.Client, error) {
 	// Define ssh connection
 	sshConfig := c.clientConfig()
@@ -146,6 +158,12 @@ func (c *Client) connectToHost() (*ssh.Client, error) {
 	return sshClient, nil
 }
 
+/**
+ * Run a command on client through SSH
+ * @param Client is the receiver where to execute the command
+ * @param cmd Command to execute
+ * @returns Result of the command or an error
+ */
 func (c *Client) RunSSH(cmd string) (string, error) {
 	sshClient, err := c.connectToHost()
 	if err != nil {
@@ -174,7 +192,14 @@ func (c *Client) RunSSH(cmd string) (string, error) {
 	return stdout.String(), nil
 }
 
-func (c *Client) SendFile(src, dst, permission string) error {
+/**
+ * Send file through SSH (a SCP in fact!)
+ * @param src Source file
+ * @param dst Destination file on the client
+ * @param perm Permissions to set on the file
+ * @returns Nothing or an error
+ */
+func (c *Client) SendFile(src, dst, perm string) error {
 	// Define ssh connection
 	sshConfig := c.clientConfig()
 
@@ -194,21 +219,29 @@ func (c *Client) SendFile(src, dst, permission string) error {
 	}
 	defer f.Close()
 
-	if err := scpClient.CopyFile(context.Background(), f, dst, permission); err != nil {
+	if err := scpClient.CopyFile(context.Background(), f, dst, perm); err != nil {
 		// Failed to copy
 		return err
 	}
 	return nil
 }
 
-func HTTPShare(dir string, port int) error {
-	// TODO: improve it to run in background!
-	fs := http.FileServer(http.Dir(dir))
-	http.Handle("/", fs)
+/**
+ * Share files through HTTP (simple way, no security at all!)
+ * @remarks A HTTP server is up and running
+ * @param directory The directory where is files are
+ * @param listenAddr Port where to listen to
+ * @returns Nothing
+ */
+// TODO: Use Server function from http helpers instead
+func HTTPShare(directory, listenAddr string) {
+	fs := http.FileServer(http.Dir(directory))
 
-	sPort := strconv.Itoa(port)
-	err := http.ListenAndServe(":"+sPort, nil)
-	return err
+	go func() {
+		if err := http.ListenAndServe(listenAddr, fs); err != nil {
+			fmt.Printf("Server failed: %s\n", err)
+		}
+	}()
 }
 
 /**
@@ -302,6 +335,8 @@ func WriteFile(dstfile string, data []byte) error {
  * @param dstFile Destination file
  * @returns Nothing or an error
  */
+// NOTE: CopyFile does not have unit test as it uses
+// AddDataToFile which is already tested
 func CopyFile(srcFile, dstFile string) error {
 	// Add data to file without adding data(!) is in fact a copy
 	return (AddDataToFile(srcFile, dstFile, []byte("")))

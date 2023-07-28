@@ -30,6 +30,7 @@ import (
  * @param proxy Define if a a proxy should be configured/used
  * @returns Nothing or an error
  */
+// NOTE: AddNode does not have unit test as it is not easy to mock
 func DeployRancherManager(hostname, channel, version, ca, proxy string) error {
 	channelName := "rancher-" + channel
 

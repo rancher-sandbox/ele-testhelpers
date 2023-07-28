@@ -15,13 +15,45 @@ limitations under the License.
 package rancher
 
 import (
+	"encoding/xml"
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 
 	libvirtxml "libvirt.org/libvirt-go-xml"
 )
+
+type Host struct {
+	XMLName xml.Name `xml:"host"`
+	Mac     string   `xml:"mac,attr"`
+	Name    string   `xml:"name,attr"`
+	IP      string   `xml:"ip,attr"`
+}
+
+/**
+ * Get information from network/host config file
+ * @param regex Regex to use for searching information
+ * @param file Name of the file to check
+ * @returns Pointer to the Host structure or an error
+ */
+func GetHostNetConfig(regex, file string) (*Host, error) {
+	fileData, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	r := regexp.MustCompile(regex)
+	find := r.FindString(string(fileData))
+
+	host := &Host{}
+	if err = xml.Unmarshal([]byte(find), host); err != nil {
+		return nil, err
+	}
+
+	return host, nil
+}
 
 /**
  * Add a node in libvirt configuration
@@ -31,6 +63,7 @@ import (
  * @param index Index of the node
  * @returns Nothing or an error
  */
+// NOTE: AddNode does not have unit test as it is not easy to mock
 func AddNode(file, name string, index int) error {
 	// Read live XML configuration
 	fileContent, err := exec.Command("sudo", "virsh", "net-dumpxml", "default").Output()

@@ -1,7 +1,10 @@
 package tools_test
 
 import (
+	"os"
 	"os/exec"
+	"strconv"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,25 +12,15 @@ import (
 )
 
 var _ = Describe("Tools tests", func() {
-	It("Test tools helper functions", func() {
-		By("Checking GetHostNetConfig function", func() {
-			dataFile := "assets/host-test.xml"
-			vmName := "node02"
-			regex := ".*name='" + vmName + "'.*"
-
-			out, err := tools.GetHostNetConfig(regex, dataFile)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(out.Name).To(Equal(vmName))
-			Expect(out.Mac).To(Equal("52:54:00:00:00:02"))
-			Expect(out.IP).To(Equal("192.168.122.12"))
-		})
-
-		By("Checking GetFileFromURL function", func() {
+	It("Test tools helpers functions", func() {
+		By("Testing GetFileFromURL function", func() {
 			fileName := "check-file"
+
 			err := tools.GetFileFromURL("https://raw.githubusercontent.com/rancher-sandbox/ele-testhelpers/main/README.md", fileName, false)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
+
 			out, err := exec.Command("file", fileName).CombinedOutput()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 			Expect(string(out)).To(Equal(fileName + ": ASCII text\n"))
 
 			// Check error handling
@@ -35,28 +28,32 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		By("Checking GetFiles function", func() {
+		By("Testing GetFilesList function", func() {
 			fileName := "README.md"
-			file, err := tools.GetFiles("..", fileName)
-			Expect(err).NotTo(HaveOccurred())
+
+			file, err := tools.GetFilesList("..", fileName)
+			Expect(err).To(Not(HaveOccurred()))
 			Expect(len(file)).To(BeNumerically("==", 1))
+
 			out, err := exec.Command("file", file[0]).CombinedOutput()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 			Expect(string(out)).To(Equal("../" + fileName + ": ASCII text\n"))
 
 			// Check error handling
-			file, err = tools.GetFiles("..", "foo")
-			Expect(err).NotTo(HaveOccurred())
+			file, err = tools.GetFilesList("..", "foo")
+			Expect(err).To(Not(HaveOccurred()))
 			Expect(file).To(BeNil())
 		})
 
-		By("Checking Sed function", func() {
+		By("Testing Sed function", func() {
 			fileName := "../README.md"
 			value := "TEST"
+
 			err := tools.Sed("#.*", value, fileName)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
+
 			out, err := exec.Command("sed", "-n", "1p", fileName).CombinedOutput()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 			Expect(string(out)).To(Equal(value + "\n"))
 
 			// Check error handling
@@ -64,7 +61,7 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		By("Checking RunSSH function", func() {
+		By("Testing RunSSH function", func() {
 			userName := "testuser"
 			testCmd := "uname -a"
 			client := &tools.Client{
@@ -79,11 +76,11 @@ var _ = Describe("Tools tests", func() {
 
 			// Start sshd
 			err = exec.Command("sudo", "mkdir", "-p", "/run/sshd").Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 			err = exec.Command("sudo", "ssh-keygen", "-A").Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 			err = exec.Command("sudo", "/usr/sbin/sshd").Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 
 			// Check connection without 'testuser' configured
 			_, err = client.RunSSH(testCmd)
@@ -91,25 +88,25 @@ var _ = Describe("Tools tests", func() {
 
 			// Add 'testuser'
 			err = exec.Command("sudo", "useradd", userName).Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 
 			// Use 'sed' instead of 'tools.Sed' because root access
 			// is needed and it's easier with 'sudo'
 			userShadow := userName + ":$6$X7HdGuscUQ.XW6dW$B8rTHpY2bZJKyPebFn20fuj0oiLj3D9L557tTBbZ2ZycuIT23UOnjxwgQEki3//wK0/RKmXeOYPHbYhregyfu1:19122:0:99999:7:::"
 			regex := "s|^" + userName + ":.*|" + userShadow + "|"
 			err = exec.Command("sudo", "sed", "-i", regex, "/etc/shadow").Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 
 			// Check a working connection
 			_, err = client.RunSSH(testCmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 
 			// Check a unknown command
 			_, err = client.RunSSH("foo")
 			Expect(err).To(HaveOccurred())
 		})
 
-		By("Checking SendFile function", func() {
+		By("Testing SendFile function", func() {
 			userName := "testuser"
 			client := &tools.Client{
 				Host:     "localhost:22",
@@ -119,7 +116,7 @@ var _ = Describe("Tools tests", func() {
 
 			// Check a working copy
 			err := client.SendFile("../README.md", "/tmp/file.tst", "0644")
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 
 			// Check a non-working copy (bad src)
 			err = client.SendFile("README.md", "/tmp/badfile.tst", "0644")
@@ -131,11 +128,128 @@ var _ = Describe("Tools tests", func() {
 
 			// Remove 'testuser'
 			err = exec.Command("sudo", "userdel", "-f", "-r", userName).Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Not(HaveOccurred()))
 
 			// Check a non-working copy (non-existent user)
 			err = client.SendFile("../README.md", "/tmp/badfile.tst", "0644")
 			Expect(err).To(HaveOccurred())
+		})
+
+		By("Testing HTTPShare function", func() {
+			fileName := "/tmp/README.test"
+			port := ":8000"
+
+			// Start HTTP server
+			tools.HTTPShare("../", port)
+
+			// Check that we can download README.md
+			err := tools.GetFileFromURL("http://localhost"+port+"/README.md", fileName, true)
+			Expect(err).To(Not(HaveOccurred()))
+
+			out, err := exec.Command("file", fileName).CombinedOutput()
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(string(out)).To(Equal(fileName + ": ASCII text\n"))
+		})
+
+		By("Testing SetTimeout function", func() {
+			value := 5
+			timeoutScale := 7
+
+			// TIMEOUT_SCALE is not defined, so 'timeout' should equal 'value'
+			timeout := tools.SetTimeout(time.Duration(value))
+			Expect(timeout).To(Equal(time.Duration(value)))
+
+			// Defined TIMEOUT_SCALE
+			os.Setenv("TIMEOUT_SCALE", strconv.Itoa(timeoutScale))
+
+			// TIMEOUT_SCALE is defined, so 'timeout' should be increased
+			timeout = tools.SetTimeout(time.Duration(value))
+			Expect(timeout).To(Equal(time.Duration(value * timeoutScale)))
+		})
+
+		By("Testing AddDataToFile function", func() {
+			srcFile := "/tmp/srcFile"
+			dstFile := "/tmp/dstFile"
+			srcValue := "My test content"
+			addValue := "My added content"
+
+			// ** Test with unexisting srcFile **
+			err := tools.AddDataToFile(srcFile, dstFile, []byte(nil))
+			Expect(err).To(HaveOccurred())
+
+			// ** Test with added value **
+
+			// Create srcFile
+			err = exec.Command("bash", "-c", "echo -n '"+srcValue+"' > "+srcFile).Run()
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Add content to file
+			err = tools.AddDataToFile(srcFile, dstFile, []byte(addValue))
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check content
+			out, err := exec.Command("cat", dstFile).CombinedOutput()
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(out).To(Equal([]byte(srcValue + addValue)))
+
+			// ** Test without added value **
+
+			// Add content to file
+			err = tools.AddDataToFile(srcFile, dstFile, []byte(nil))
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check content
+			out, err = exec.Command("cat", dstFile).CombinedOutput()
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(out).To(Equal([]byte(srcValue)))
+		})
+
+		By("Testing WriteFile function", func() {
+			dstFile := "/tmp/dstFile"
+			srcValue := "My test content"
+
+			// ** Test with added value **
+
+			// Add content to file
+			err := tools.WriteFile(dstFile, []byte(srcValue))
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check content
+			out, err := exec.Command("cat", dstFile).CombinedOutput()
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(out).To(Equal([]byte(srcValue)))
+
+			// ** Test without added value **
+
+			// Add content to file
+			err = tools.WriteFile(dstFile, []byte(nil))
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check content
+			out, err = exec.Command("cat", dstFile).CombinedOutput()
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(out).To(BeEmpty())
+		})
+
+		By("Testing TrimStringFromChar function", func() {
+			stringToCheck := "myValueToCheck"
+			separator := ":"
+			stringToTrim := stringToCheck + separator + "myValueToRemove"
+
+			out := tools.TrimStringFromChar(stringToTrim, separator)
+			Expect(out).To(Not(BeEmpty()))
+			Expect(out).To(Equal(stringToCheck))
+		})
+
+		By("Testing CreateTemp function", func() {
+			// Create tmp file
+			tmpFile, err := tools.CreateTemp("testFile")
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(tmpFile).To(Not(BeEmpty()))
+
+			// Check that tmp file exist
+			err = exec.Command("test", "-f", tmpFile).Run()
+			Expect(err).To(Not(HaveOccurred()))
 		})
 	})
 })
