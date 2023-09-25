@@ -371,3 +371,13 @@ func CreateTemp(baseName string) (string, error) {
 
 	return t.Name(), nil
 }
+
+/**
+ * Check if the string is a valid IPv4
+ * @param value Value to check
+ * @returns True if value is an IPv4, otherwise False
+ */
+func IsIPv4(value string) bool {
+	const regex = `^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
+	return regexp.MustCompile(regex).MatchString(value)
+}

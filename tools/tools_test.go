@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -250,6 +251,18 @@ var _ = Describe("Tools tests", func() {
 			// Check that tmp file exist
 			err = exec.Command("test", "-f", tmpFile).Run()
 			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		By("Testing IsIPv4 function", func() {
+			goodIPs := "192.168.122.2 10.68.250.156 1.2.3.4 255.255.255.255"
+			for _, value := range strings.Fields(goodIPs) {
+				Expect(tools.IsIPv4(value)).To(BeTrue())
+			}
+
+			badIPs := "255.255.256.255 E0925"
+			for _, value := range strings.Fields(badIPs) {
+				Expect(tools.IsIPv4(value)).To(BeFalse())
+			}
 		})
 	})
 })
