@@ -32,6 +32,7 @@ import (
  */
 // NOTE: AddNode does not have unit test as it is not easy to mock
 func DeployRancherManager(hostname, channel, version, ca, proxy string) error {
+	const password = "rancherpassword"
 	channelName := "rancher-" + channel
 
 	// Add Helm repository
@@ -52,10 +53,11 @@ func DeployRancherManager(hostname, channel, version, ca, proxy string) error {
 		"--namespace", "cattle-system",
 		"--create-namespace",
 		"--set", "hostname=" + hostname,
+		"--set", "bootstrapPassword=" + password,
 		"--set", "extraEnv[0].name=CATTLE_SERVER_URL",
 		"--set", "extraEnv[0].value=https://" + hostname,
 		"--set", "extraEnv[1].name=CATTLE_BOOTSTRAP_PASSWORD",
-		"--set", "extraEnv[1].value=rancherpassword",
+		"--set", "extraEnv[1].value=" + password,
 		"--set", "replicas=1",
 		"--set", "global.cattle.psp.enabled=false",
 	}
