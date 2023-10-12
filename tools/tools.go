@@ -204,7 +204,7 @@ func (c *Client) SendFile(src, dst, perm string) error {
 	sshConfig := c.clientConfig()
 
 	// Connect to client
-	scpClient := scp.NewClientWithTimeout(c.Host, sshConfig, 10*time.Second)
+	scpClient := scp.NewClient(c.Host, sshConfig)
 	defer scpClient.Close()
 
 	if err := scpClient.Connect(); err != nil {
@@ -219,7 +219,7 @@ func (c *Client) SendFile(src, dst, perm string) error {
 	}
 	defer f.Close()
 
-	if err := scpClient.CopyFile(context.Background(), f, dst, perm); err != nil {
+	if err := scpClient.CopyFromFile(context.Background(), *f, dst, perm); err != nil {
 		// Failed to copy
 		return err
 	}
