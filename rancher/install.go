@@ -59,7 +59,6 @@ func DeployRancherManager(hostname, channel, version, ca, proxy string) error {
 		"--set", "extraEnv[1].name=CATTLE_BOOTSTRAP_PASSWORD",
 		"--set", "extraEnv[1].value=" + password,
 		"--set", "replicas=1",
-		"--set", "global.cattle.psp.enabled=false",
 	}
 
 	// Set specified version if needed
