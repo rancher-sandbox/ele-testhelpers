@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -156,6 +157,41 @@ func (c *Client) connectToHost() (*ssh.Client, error) {
 	}
 
 	return sshClient, nil
+}
+
+/**
+ * Get file through SSH (a SCP in fact!)
+ * @param localFile Local file to create
+ * @param remoteFile Remote file to copy from
+ * @param perm Permissions to set on the local file
+ * @returns Nothing or an error
+ */
+func (c *Client) GetFile(localFile, remoteFile string, perm fs.FileMode) error {
+	// Define ssh connection
+	sshConfig := c.clientConfig()
+
+	// Create a local file to write to.
+	f, err := os.OpenFile(localFile, os.O_RDWR|os.O_CREATE, perm)
+	if err != nil {
+		// Failed to open
+		return err
+	}
+	defer f.Close()
+
+	// Connect to client
+	scpClient := scp.NewClient(c.Host, sshConfig)
+	defer scpClient.Close()
+
+	if err := scpClient.Connect(); err != nil {
+		// Failed to connect
+		return err
+	}
+
+	if err := scpClient.CopyFromRemote(context.Background(), f, remoteFile); err != nil {
+		// Failed to copy
+		return err
+	}
+	return nil
 }
 
 /**

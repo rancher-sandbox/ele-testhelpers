@@ -136,6 +136,41 @@ var _ = Describe("Tools tests", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
+		By("Testing GetFile function", func() {
+			userName := "testuser"
+			client := &tools.Client{
+				Host:     "localhost:22",
+				Username: userName,
+				Password: "testpassword",
+			}
+			// Add 'testuser' back
+			err := exec.Command("sudo", "useradd", userName).Run()
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Use 'sed' instead of 'tools.Sed' because root access
+			// is needed and it's easier with 'sudo'
+			userShadow := userName + ":$6$X7HdGuscUQ.XW6dW$B8rTHpY2bZJKyPebFn20fuj0oiLj3D9L557tTBbZ2ZycuIT23UOnjxwgQEki3//wK0/RKmXeOYPHbYhregyfu1:19122:0:99999:7:::"
+			regex := "s|^" + userName + ":.*|" + userShadow + "|"
+			err = exec.Command("sudo", "sed", "-i", regex, "/etc/shadow").Run()
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check a working copy
+			err = client.GetFile("../README.md", "/tmp/file.tst", 0644)
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check a non-working copy (bad dst)
+			err = client.GetFile("../README.md", "/badtmp/badfile.tst", 0644)
+			Expect(err).To(HaveOccurred())
+
+			// Remove 'testuser'
+			err = exec.Command("sudo", "userdel", "-f", "-r", userName).Run()
+			Expect(err).To(Not(HaveOccurred()))
+
+			// Check a non-working copy (non-existent user)
+			err = client.GetFile("../README.md", "/tmp/badfile.tst", 0644)
+			Expect(err).To(HaveOccurred())
+		})
+
 		By("Testing HTTPShare function", func() {
 			fileName := "/tmp/README.test"
 			port := ":8000"
