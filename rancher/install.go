@@ -67,7 +67,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		if version == "devel" {
 			flags = append(flags,
 				"--devel",
-				"--set", "rancherImageTag=v"+headVersion+"head",
+				"--set", "rancherImageTag=v"+headVersion+"-head",
 			)
 		} else if strings.Contains(version, "-rc") {
 			flags = append(flags,
