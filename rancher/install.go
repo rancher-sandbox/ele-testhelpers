@@ -25,13 +25,14 @@ import (
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
  * @param channel Rancher channel to use (stable, latest)
- * @param version Rancher verison to installer (latest, devel)
+ * @param version Rancher version to install (latest, devel)
+ * @param headVersion Rancher head version to install (2.7, 2.8)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
  * @returns Nothing or an error
  */
 // NOTE: AddNode does not have unit test as it is not easy to mock
-func DeployRancherManager(hostname, channel, version, ca, proxy string) error {
+func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string) error {
 	const password = "rancherpassword"
 	channelName := "rancher-" + channel
 
@@ -66,7 +67,7 @@ func DeployRancherManager(hostname, channel, version, ca, proxy string) error {
 		if version == "devel" {
 			flags = append(flags,
 				"--devel",
-				"--set", "rancherImageTag=v2.7-head",
+				"--set", "rancherImageTag=v"+headVersion+"head",
 			)
 		} else if strings.Contains(version, "-rc") {
 			flags = append(flags,
