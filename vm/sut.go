@@ -262,11 +262,7 @@ func (s *SUT) IsVMRunning() bool {
 
 	// On Unix FindProcess does not error out if the process does not
 	// exist, so we send a test signal
-	err = proc.Signal(syscall.Signal(0))
-	if err == nil {
-		return true
-	}
-	return false
+	return proc.Signal(syscall.Signal(0)) == nil
 }
 
 // Command sends a command to the SUIT and waits for reply
