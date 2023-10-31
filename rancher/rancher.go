@@ -17,6 +17,7 @@ package rancher
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/rancher-sandbox/ele-testhelpers/tools"
 	"gopkg.in/yaml.v3"
 )
+
+const noExist = "'%s' does not exist!"
 
 /**
  * Get cluster informations
@@ -113,7 +116,7 @@ func SetNodeQuantity(ns, name, pool string, quantity int) (int, error) {
 
 	// Throw an error if the pool has not been found
 	if !poolFound {
-		return 0, errors.New("pool '" + pool + "' does not exist!")
+		return 0, errors.New("pool " + fmt.Sprintf(noExist, pool))
 	}
 
 	// Save and apply cluster configuration
@@ -163,13 +166,13 @@ func SetRole(ns, name, pool, role string, value bool) error {
 			}
 
 			// No, return an error
-			return errors.New("role '" + role + "' does not exist!")
+			return errors.New("role " + fmt.Sprintf(noExist, role))
 		}
 	}
 
 	// Throw an error if the pool has not been found
 	if !poolFound {
-		return errors.New("pool '" + pool + "' does not exist!")
+		return errors.New("pool " + fmt.Sprintf(noExist, pool))
 	}
 
 	// Save and apply cluster configuration
