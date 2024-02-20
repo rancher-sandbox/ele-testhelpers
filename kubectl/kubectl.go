@@ -708,6 +708,13 @@ func Run(s ...string) (string, error) {
 	return msg, err
 }
 
+// RunWithoutErr allow to control kubectl directly but without any StdErr
+func RunWithoutErr(s ...string) (string, error) {
+	out, err := runBinaryWithoutErr(kubeCtlCmd, s...)
+	msg := string(out)
+	return msg, err
+}
+
 // GetCRDs returns all CRDs
 func GetCRDs() (*ClusterCrd, error) {
 	customResource := &ClusterCrd{}
@@ -770,12 +777,23 @@ func RunHelmBinaryWithCustomErr(args ...string) error {
 	return nil
 }
 
-// runBinary executes a binary cmd and returns the stdOutput
+// runBinary executes a binary cmd and returns the stdOutput and stdError combined
 func runBinary(binaryName string, args ...string) ([]byte, error) {
 	cmd := exec.Command(binaryName, args...)
 	stdOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		return stdOutput, errors.Wrapf(err, "%s cmd, failed with the following error: %s", cmd.Args, string(stdOutput))
+	}
+	return stdOutput, nil
+}
+
+// runBinaryWithoutErr executes a binary cmd and only returns the stdOutput
+func runBinaryWithoutErr(binaryName string, args ...string) ([]byte, error) {
+	cmd := exec.Command(binaryName, args...)
+	stdOutput, err := cmd.Output()
+	var execErr *exec.ExitError
+	if errors.As(err, &execErr) {
+		return stdOutput, errors.Wrapf(err, "%s cmd, failed with the following error: %s", cmd.Args, string(execErr.Stderr))
 	}
 	return stdOutput, nil
 }
