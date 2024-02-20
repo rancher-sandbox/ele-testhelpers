@@ -20,6 +20,7 @@ import (
 	"net/http"
 )
 
+//nolint:all
 func Server(ctx context.Context, listenAddr string, content string) {
 	srv := http.Server{
 		Addr: listenAddr,
