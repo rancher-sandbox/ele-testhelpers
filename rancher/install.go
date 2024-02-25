@@ -15,6 +15,7 @@ limitations under the License.
 package rancher
 
 import (
+	"os"
 	"strings"
 
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
@@ -33,7 +34,10 @@ import (
  */
 // NOTE: AddNode does not have unit test as it is not easy to mock
 func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string) error {
-	const password = "rancherpassword"
+	var password = "rancherpassword"
+	if envPW := os.Getenv("RANCHER_PASSWORD"); envPW != "" {
+		password = envPW
+	}
 	channelName := "rancher-" + channel
 
 	// Add Helm repository
