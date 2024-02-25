@@ -777,6 +777,15 @@ func RunHelmBinaryWithCustomErr(args ...string) error {
 	return nil
 }
 
+// RunHelmBinaryWithOutput executes a desired binary and returns the output
+func RunHelmBinaryWithOutput(args ...string) (string, error) {
+	out, err := runBinary(helmCmd, args...)
+	if err != nil {
+		return string(out), &CustomError{strings.Join(append([]string{helmCmd}, args...), " "), string(out), err}
+	}
+	return string(out), nil
+}
+
 // runBinary executes a binary cmd and returns the stdOutput and stdError combined
 func runBinary(binaryName string, args ...string) ([]byte, error) {
 	cmd := exec.Command(binaryName, args...)
