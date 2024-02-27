@@ -61,8 +61,6 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		"--set", "bootstrapPassword=" + password,
 		"--set", "extraEnv[0].name=CATTLE_SERVER_URL",
 		"--set", "extraEnv[0].value=https://" + hostname,
-		"--set", "extraEnv[1].name=CATTLE_BOOTSTRAP_PASSWORD",
-		"--set", "extraEnv[1].value=" + password,
 		"--set", "replicas=1",
 	}
 
