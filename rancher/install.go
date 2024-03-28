@@ -62,6 +62,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		"--set", "extraEnv[0].name=CATTLE_SERVER_URL",
 		"--set", "extraEnv[0].value=https://" + hostname,
 		"--set", "replicas=1",
+		"--set", "useBundledSystemChart=true",
+		"--wait", "--wait-for-jobs",
 	}
 
 	// Set specified version if needed
