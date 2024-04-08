@@ -56,7 +56,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		return err
 	}
 
-	if err = kubectl.RunHelmBinaryWithCustomErr("repo", "update"); err != nil {
+	if err := kubectl.RunHelmBinaryWithCustomErr("repo", "update"); err != nil {
 		return err
 	}
 
