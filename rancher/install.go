@@ -52,8 +52,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	}
 
 	// Add Helm repository
-	err := kubectl.RunHelmBinaryWithCustomErr("repo", "add", channelName, chartRepo)
-	if err != nil {
+	if err := kubectl.RunHelmBinaryWithCustomErr("repo", "add", channelName, chartRepo); err != nil {
 		return err
 	}
 
