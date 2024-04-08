@@ -25,9 +25,9 @@ import (
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest)
+ * @param channel Rancher channel to use (stable, latest, prime)
  * @param version Rancher version to install (latest, devel)
- * @param headVersion Rancher head version to install (2.7, 2.8)
+ * @param headVersion Rancher head version to install (2.7, 2.8, 2.9)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
  * @returns Nothing or an error
@@ -38,12 +38,21 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	if envPW := os.Getenv("RANCHER_PASSWORD"); envPW != "" {
 		password = envPW
 	}
+
 	channelName := "rancher-" + channel
+	var chartRepo string
+
+	switch channel {
+	case "prime":
+		chartRepo = "https://charts.rancher.com/server-charts/prime"
+	case "latest":
+		chartRepo = "https://releases.rancher.com/server-charts/latest"
+	case "stable":
+		chartRepo = "https://releases.rancher.com/server-charts/stable"
+	}
 
 	// Add Helm repository
-	err := kubectl.RunHelmBinaryWithCustomErr("repo", "add", channelName,
-		"https://releases.rancher.com/server-charts/"+channel,
-	)
+	err := kubectl.RunHelmBinaryWithCustomErr("repo", "add", channelName, chartRepo)
 	if err != nil {
 		return err
 	}
@@ -73,6 +82,14 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 				"--devel",
 				"--set", "rancherImageTag=v"+headVersion+"-head",
 			)
+			// Devel image rancher:v2.7-head available only on stgregistry.suse.com
+			if headVersion == "2.7" {
+				flags = append(flags,
+					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
+					"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+					"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
+				)
+			}
 		} else if strings.Contains(version, "-rc") {
 			flags = append(flags,
 				"--devel",
