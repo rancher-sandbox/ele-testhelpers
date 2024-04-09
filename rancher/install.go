@@ -45,6 +45,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	switch channel {
 	case "prime":
 		chartRepo = "https://charts.rancher.com/server-charts/prime"
+	case "alpha":
+		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 	case "latest":
 		chartRepo = "https://releases.rancher.com/server-charts/latest"
 	case "stable":
