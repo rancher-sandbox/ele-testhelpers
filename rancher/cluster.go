@@ -56,6 +56,7 @@ type RKEConfig struct {
 // MachinePools has all pools information
 type MachinePools struct {
 	ControlPlaneRole     bool             `yaml:"controlPlaneRole,omitempty"`
+	DrainBeforeDelete    bool             `yaml:"drainBeforeDelete,omitempty"`
 	EtcdRole             bool             `yaml:"etcdRole,omitempty"`
 	MachineConfigRef     MachineConfigRef `yaml:"machineConfigRef"`
 	Name                 string           `yaml:"name"`
