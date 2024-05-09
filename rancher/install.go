@@ -25,7 +25,7 @@ import (
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest, prime)
+ * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha)
  * @param version Rancher version to install (latest, devel)
  * @param headVersion Rancher head version to install (2.7, 2.8, 2.9)
  * @param ca CA to use (selfsigned, private)
@@ -45,6 +45,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	switch channel {
 	case "prime":
 		chartRepo = "https://charts.rancher.com/server-charts/prime"
+	case "prime-optimus":
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 	case "latest":
@@ -96,6 +98,15 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 				"--devel",
 				"--version", version,
 			)
+			// For rancher:2.7.x-rc from prime-optimus channel only
+			if strings.Contains(version, "2.7.") && channel == "prime-optimus" {
+				flags = append(flags,
+					// no need to set rancherImageTag as it is already set in the chart
+					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
+					"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+					"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+version,
+				)
+			}
 		} else {
 			flags = append(flags, "--version", version)
 		}
