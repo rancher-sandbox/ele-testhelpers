@@ -36,7 +36,8 @@ const noExist = "'%s' does not exist!"
  * @returns Cluster informations in *c or an error
  */
 func (c *Cluster) getCluster(ns, name string) error {
-	out, err := kubectl.Run("get", "cluster",
+	out, err := kubectl.Run("get",
+		"cluster.v1.provisioning.cattle.io",
 		"--namespace", ns, name,
 		"-o", "yaml")
 	if err != nil {
