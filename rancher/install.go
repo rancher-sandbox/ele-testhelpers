@@ -40,29 +40,6 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	}
 
 	channelName := "rancher-" + channel
-	var chartRepo string
-
-	switch channel {
-	case "prime":
-		chartRepo = "https://charts.rancher.com/server-charts/prime"
-	case "prime-optimus":
-		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
-	case "alpha":
-		chartRepo = "https://releases.rancher.com/server-charts/alpha"
-	case "latest":
-		chartRepo = "https://releases.rancher.com/server-charts/latest"
-	case "stable":
-		chartRepo = "https://releases.rancher.com/server-charts/stable"
-	}
-
-	// Add Helm repository
-	if err := kubectl.RunHelmBinaryWithCustomErr("repo", "add", channelName, chartRepo); err != nil {
-		return err
-	}
-
-	if err := kubectl.RunHelmBinaryWithCustomErr("repo", "update"); err != nil {
-		return err
-	}
 
 	// Set flags for Rancher Manager installation
 	flags := []string{
@@ -76,6 +53,30 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		"--set", "replicas=1",
 		"--set", "useBundledSystemChart=true",
 		"--wait", "--wait-for-jobs",
+	}
+
+	var chartRepo string
+	switch channel {
+	case "prime":
+		chartRepo = "https://charts.rancher.com/server-charts/prime"
+	case "prime-optimus":
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
+	case "alpha":
+		chartRepo = "https://releases.rancher.com/server-charts/alpha"
+		flags = append(flags, "--devel")
+	case "latest":
+		chartRepo = "https://releases.rancher.com/server-charts/latest"
+	case "stable":
+		chartRepo = "https://releases.rancher.com/server-charts/stable"
+	}
+
+	// Add Helm repository
+	if err := kubectl.RunHelmBinaryWithCustomErr("repo", "add", channelName, chartRepo); err != nil {
+		return err
+	}
+
+	if err := kubectl.RunHelmBinaryWithCustomErr("repo", "update"); err != nil {
+		return err
 	}
 
 	// Set specified version if needed
