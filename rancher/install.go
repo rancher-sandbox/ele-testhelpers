@@ -86,8 +86,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 				"--devel",
 				"--set", "rancherImageTag=v"+headVersion+"-head",
 			)
-			// Devel image rancher:v2.7-head available only on stgregistry.suse.com
-			if headVersion == "2.7" {
+			// Devel image rancher:v2.x-head available only on stgregistry.suse.com
+			if headVersion != "" {
 				flags = append(flags,
 					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
 					"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
@@ -99,8 +99,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 				"--devel",
 				"--version", version,
 			)
-			// For rancher:2.7.x-rc from prime-optimus channel only
-			if strings.Contains(version, "2.7.") && channel == "prime-optimus" {
+			// For rancher:2.x.y-rc from prime-optimus channel only
+			if channel == "prime-optimus" {
 				flags = append(flags,
 					// no need to set rancherImageTag as it is already set in the chart
 					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
