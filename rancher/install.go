@@ -25,7 +25,7 @@ import (
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha)
+ * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha, prime-optimus-alpha)
  * @param version Rancher version to install (latest, devel)
  * @param headVersion Rancher head version to install (2.7, 2.8, 2.9)
  * @param ca CA to use (selfsigned, private)
@@ -102,8 +102,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 				"--devel",
 				"--version", version,
 			)
-			// For rancher:2.x.y-rc from prime-optimus channel only
-			if channel == "prime-optimus" {
+			// For rancher:2.x.y-rc from prime-optimus and prime-optimus-alpha channel only
+			if strings.Contains(channel, "prime-optimus") {
 				flags = append(flags,
 					// no need to set rancherImageTag as it is already set in the chart
 					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
