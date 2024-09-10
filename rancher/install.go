@@ -61,6 +61,9 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		chartRepo = "https://charts.rancher.com/server-charts/prime"
 	case "prime-optimus":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
+	case "prime-optimus-alpha":
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
+		flags = append(flags, "--devel")
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 		flags = append(flags, "--devel")
