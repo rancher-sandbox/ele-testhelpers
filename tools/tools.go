@@ -223,7 +223,7 @@ func (c *Client) RunSSH(cmd string) (string, error) {
 	session.Stderr = &stderr
 	if err := session.Run(cmd); err != nil {
 		// Failed to execute the command
-		return stdout.String(), errors.Wrapf(err, stderr.String())
+		return stdout.String(), errors.Wrap(err, stderr.String())
 	}
 	return stdout.String(), nil
 }
