@@ -97,7 +97,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 					"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
 				)
 			}
-		} else if strings.Contains(version, "-rc") {
+		} else if strings.Contains(version, "-rc") || strings.Contains(version, "-alpha") {
 			flags = append(flags,
 				"--devel",
 				"--version", version,
