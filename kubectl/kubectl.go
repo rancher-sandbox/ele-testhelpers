@@ -112,6 +112,12 @@ func (k *Kubectl) NamespaceWithReadyPod(namespace string, labelName string) (boo
 			if !s.Ready {
 				return false, nil
 			}
+			if !s.Started {
+				return false, nil
+			}
+			if s.State.Running == nil {
+				return false, nil
+			}
 		}
 	}
 	return true, nil
