@@ -125,9 +125,14 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	}
 
 	// Use Rancher Manager behind proxy
+	// Get the proxyHost if given
+	proxyHost := "http://172.17.0.1:3128"
+	if proxyHostFromEnv := os.Getenv("PROXY_HOST"); proxyHostFromEnv != "" {
+		proxyHost = proxyHostFromEnv
+	}
 	if proxy == "rancher" {
 		flags = append(flags,
-			"--set", "proxy=http://172.17.0.1:3128",
+			"--set", "proxy="+proxyHost,
 			"--set", "noProxy=127.0.0.0/8\\,10.0.0.0/8\\,cattle-system.svc\\,172.16.0.0/12\\,192.168.0.0/16\\,.svc\\,.cluster.local",
 		)
 	}
