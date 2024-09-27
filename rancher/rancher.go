@@ -181,6 +181,23 @@ func SetRole(ns, name, pool, role string, value bool) error {
 }
 
 /**
+ * Check daemonset status
+ * @remarks This function checks the status of a daemonset based on checkList
+ * @param k Already defined Kubectl context
+ * @param checkList Array of paired namespaces/labels to check
+ * @example CheckDaemonSet(k, [][]string{{"kube-system", "k8s-app=canal"}})
+ * @returns Nothing or an error
+ */
+func CheckDaemonSet(k *kubectl.Kubectl, checkList [][]string) error {
+	for _, check := range checkList {
+		if err := k.WaitForDaemonSet(check[0], check[1]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+/**
  * Check pod status
  * @remarks This function checks the status of a pod based on checkList
  * @param k Already defined Kubectl context
