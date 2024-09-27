@@ -657,12 +657,31 @@ func (k *Kubectl) ApplyJSON(namespace string, name string, v interface{}) error 
 
 // Delete calls kubectl with the given arguments
 func (k *Kubectl) Delete(args ...string) error {
-
 	if _, err := runBinary(kubeCtlCmd, append([]string{"delete"}, args...)...); err != nil {
 		return errors.Wrapf(err, "Deleting resource: %s", args)
 	}
 
 	return nil
+}
+
+// WaitForDaemonSet blocks until daemonset matching the label is available in the specified namespace. It fails after the timeout.
+func (k *Kubectl) WaitForDaemonSet(namespace string, label string) error {
+	return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
+		return k.DaemonSetReady(namespace, label)
+	})
+}
+
+// DaemonSetReady returns true if daemontset by that label is present in the given namespace
+func (k *Kubectl) DaemonSetReady(namespace string, label string) (bool, error) {
+	out, err := runBinary(kubeCtlCmd, "rollout", "status", "daemonset", "--namespace", namespace, "--selector", label)
+	if err == nil {
+		if !strings.Contains(string(out), "successfully rolled out") {
+			return false, err
+		}
+		return true, nil
+	}
+
+	return false, errors.Wrapf(err, "Kubectl rollout failed for label %s. %s", label, string(out))
 }
 
 // ConfigMap defines a kube ConfigMap
