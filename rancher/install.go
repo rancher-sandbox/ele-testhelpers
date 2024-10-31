@@ -21,6 +21,61 @@ import (
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
 )
 
+/** Support function for populating correct helm flags for Devel versions
+ * @param flags Helm flags
+ * @param headVersion Rancher head version
+ * @returns flags with correct values
+ */
+func appendDevelFlags(flags []string, headVersion string) []string {
+	if headVersion == "2.10" {
+		flags = append(flags,
+			"--devel",
+			"--set", "rancherImageTag=head",
+			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+			"--set", "extraEnv[1].value=rancher/rancher-agent:head",
+		)
+	} else if headVersion == "2.9" {
+		flags = append(flags,
+			"--devel",
+			"--set", "rancherImageTag=v"+headVersion+"-head",
+			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+			"--set", "extraEnv[1].value=rancher/rancher-agent:v"+headVersion+"-head",
+		)
+	} else {
+		// Devel images rancher:v2.7-head and rancher:v2.8-head are available on stgregistry.suse.com only
+		flags = append(flags,
+			"--devel",
+			"--set", "rancherImageTag=v"+headVersion+"-head",
+			"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
+			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
+		)
+	}
+	return flags
+}
+
+/** Support function for populating correct helm flags for RC and Alpha versions
+ * @param flags Helm flags
+ * @param version Rancher version
+ * @param channel Rancher channel
+ * @returns flags with correct values
+ */
+func appendRCAlphaFlags(flags []string, version string, channel string) []string {
+	flags = append(flags,
+		"--devel",
+		"--version", version,
+	)
+	// For rancher:2.x.y-rc from prime-optimus and prime-optimus-alpha channel only
+	if strings.Contains(channel, "prime-optimus") {
+		flags = append(flags,
+			"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
+			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+version,
+		)
+	}
+	return flags
+}
+
 /**
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
@@ -41,7 +96,6 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 
 	channelName := "rancher-" + channel
 
-	// Set flags for Rancher Manager installation
 	flags := []string{
 		"upgrade", "--install", "rancher", channelName + "/rancher",
 		"--namespace", "cattle-system",
@@ -63,10 +117,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
 	case "prime-optimus-alpha":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
-		flags = append(flags, "--devel")
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
-		flags = append(flags, "--devel")
 	case "latest":
 		chartRepo = "https://releases.rancher.com/server-charts/latest"
 	case "stable":
@@ -85,32 +137,9 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	// Set specified version if needed
 	if version != "" && version != "latest" {
 		if version == "devel" {
-			flags = append(flags,
-				"--devel",
-				"--set", "rancherImageTag=v"+headVersion+"-head",
-			)
-			// Devel images rancher:v2.7-head and rancher:v2.8-head are available on stgregistry.suse.com
-			if headVersion != "2.9" {
-				flags = append(flags,
-					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
-					"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
-					"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
-				)
-			}
+			flags = appendDevelFlags(flags, headVersion)
 		} else if strings.Contains(version, "-rc") || strings.Contains(version, "-alpha") {
-			flags = append(flags,
-				"--devel",
-				"--version", version,
-			)
-			// For rancher:2.x.y-rc from prime-optimus and prime-optimus-alpha channel only
-			if strings.Contains(channel, "prime-optimus") {
-				flags = append(flags,
-					// no need to set rancherImageTag as it is already set in the chart
-					"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
-					"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
-					"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+version,
-				)
-			}
+			flags = appendRCAlphaFlags(flags, version, channel)
 		} else {
 			flags = append(flags, "--version", version)
 		}
