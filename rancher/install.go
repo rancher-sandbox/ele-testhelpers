@@ -27,22 +27,16 @@ import (
  * @returns flags with correct values
  */
 func appendDevelFlags(flags []string, headVersion string) []string {
-	if headVersion == "2.10" {
+	switch headVersion {
+	case "2.10":
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=head",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
 			"--set", "extraEnv[1].value=rancher/rancher-agent:head",
 		)
-	} else if headVersion == "2.9" {
-		flags = append(flags,
-			"--devel",
-			"--set", "rancherImageTag=v"+headVersion+"-head",
-			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
-			"--set", "extraEnv[1].value=rancher/rancher-agent:v"+headVersion+"-head",
-		)
-	} else {
-		// Devel images rancher:v2.7-head and rancher:v2.8-head are available on stgregistry.suse.com only
+	default:
+		// Devel images for rancher:v2\.(7|8|9)-head are available on stgregistry.suse.com
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
