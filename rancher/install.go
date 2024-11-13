@@ -83,13 +83,14 @@ func appendRCAlphaFlags(flags []string, version string, channel string) []string
  * @param hostname Hostname/URL to use for the deployment
  * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha, prime-optimus-alpha)
  * @param version Rancher version to install (latest, devel)
- * @param headVersion Rancher head version to install (2.7, 2.8, 2.9)
+ * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, head)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
+ * @param extraFlags Optional helm flags for installing Rancher (start from extraEnv[2])
  * @returns Nothing or an error
  */
 // NOTE: AddNode does not have unit test as it is not easy to mock
-func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string) error {
+func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string, extraFlags ...[]string) error {
 	var password = "rancherpassword"
 	if envPW := os.Getenv("RANCHER_PASSWORD"); envPW != "" {
 		password = envPW
@@ -165,6 +166,11 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 			"--set", "proxy="+proxyHost,
 			"--set", "noProxy=127.0.0.0/8\\,10.0.0.0/8\\,cattle-system.svc\\,172.16.0.0/12\\,192.168.0.0/16\\,.svc\\,.cluster.local",
 		)
+	}
+
+	// Append extra flags if any
+	for _, extra := range extraFlags {
+		flags = append(flags, extra...)
 	}
 
 	return kubectl.RunHelmBinaryWithCustomErr(flags...)
