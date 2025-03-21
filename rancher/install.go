@@ -16,6 +16,7 @@ package rancher
 
 import (
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
@@ -27,15 +28,21 @@ import (
  * @returns flags with correct values
  */
 func appendDevelFlags(flags []string, headVersion string) []string {
-	switch headVersion {
-	case "head":
+
+	// Regex pattern for 2.10, 2.11 and so on but not 2.7, 2.8 or 2.9
+	pattern := `^[2-9]\.(10|1[1-9]|[2-9]\d)$`
+	re := regexp.MustCompile(pattern)
+
+	switch {
+	case headVersion == "head":
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=head",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
 			"--set", "extraEnv[1].value=rancher/rancher-agent:head",
 		)
-	case "2.10":
+	case re.MatchString(headVersion):
+		// If the version matches the regex, like 2.10, 2.11, etc.
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
