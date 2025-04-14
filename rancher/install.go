@@ -29,12 +29,13 @@ import (
  */
 func appendDevelFlags(flags []string, headVersion string) []string {
 
-	// Regex pattern for 2.10, 2.11 and so on but not 2.7, 2.8 or 2.9
-	pattern := `^[2-9]\.(10|1[1-9]|[2-9]\d)$`
+	// Regex pattern for 2.11 to 9.99 but not 2.7, 2.8, 2.9 and 2.10
+	pattern := `^[2-9]\.(1[1-9]|[2-9]\d)$`
 	re := regexp.MustCompile(pattern)
 
 	switch {
 	case headVersion == "head":
+		// As of 04/2025 this can be used as "latest/devel/head" to test v2.12-head
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=head",
@@ -42,7 +43,7 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 			"--set", "extraEnv[1].value=rancher/rancher-agent:head",
 		)
 	case re.MatchString(headVersion):
-		// If the version matches the regex, like 2.10, 2.11, etc.
+		// If the version matches the regex, like 2.11 and up.
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
@@ -50,7 +51,7 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 			"--set", "extraEnv[1].value=rancher/rancher-agent:v"+headVersion+"-head",
 		)
 	default:
-		// Devel images for rancher:v2\.(7|8|9)-head are available on stgregistry.suse.com
+		// Devel images for rancher:v2\.(7|8|9|10)-head are available on stgregistry.suse.com
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
