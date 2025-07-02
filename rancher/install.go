@@ -29,8 +29,8 @@ import (
  */
 func appendDevelFlags(flags []string, headVersion string) []string {
 
-	// Regex pattern for 2.11 to 9.99 but not 2.7, 2.8, 2.9 and 2.10
-	pattern := `^[2-9]\.(1[1-9]|[2-9]\d)$`
+	// Regex pattern for 2.12 to 2.99 but not 2.7, 2.8, 2.9, 2.10 and 2.11
+	pattern := `^2\.(1[2-9]|[2-9]\d)$`
 	re := regexp.MustCompile(pattern)
 
 	switch {
@@ -43,7 +43,7 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 			"--set", "extraEnv[1].value=rancher/rancher-agent:head",
 		)
 	case re.MatchString(headVersion):
-		// If the version matches the regex, like 2.11 and up.
+		// If the version matches the regex, like 2.12 and up.
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
@@ -51,11 +51,43 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 			"--set", "extraEnv[1].value=rancher/rancher-agent:v"+headVersion+"-head",
 		)
 	default:
-		// Devel images for rancher:v2\.(7|8|9|10)-head are available on stgregistry.suse.com
+		// Devel images for rancher:v2\.(7|8|9|10|11)-head are available on stgregistry.suse.com
 		flags = append(flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
 			"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
+			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
+			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
+		)
+	}
+	return flags
+}
+
+/** Support function for populating correct helm flags for Head versions in "head" channel
+ * @param flags Helm flags
+ * @param headVersion Rancher head version
+ * @returns flags with correct values
+ */
+func appendHeadFlags(flags []string, headVersion string) []string {
+
+	// Regex pattern for 2.12 to 2.99 but not 2.7, 2.8, 2.9, 2.10 and 2.11
+	pattern := `^2\.(1[2-9]|[2-9]\d)$`
+	re := regexp.MustCompile(pattern)
+
+	switch {
+	case re.MatchString(headVersion):
+		// If the version matches the regex, like 2.12 and up.
+		// No need to set rancherImage or CATTLE_AGENT_IMAGE as they are already set in the head chart for 2.12
+		flags = append(flags,
+			"--devel",
+		)
+	default:
+		// For Rancher versions 2.10 and 2.11, head images are only available on stgregistry.suse.com
+		// The head chart automatically uses the correct registry for the main rancher image,
+		// but the rancher-agent image must be explicitly set to use stgregistry.suse.com
+		// (NOTE: the chart refers to agent image using SHA in the tag, but luckily there is v2.1x-head tag available with the same Image ID)
+		flags = append(flags,
+			"--devel",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
 			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
 		)
@@ -89,9 +121,9 @@ func appendRCAlphaFlags(flags []string, version string, channel string) []string
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha, prime-optimus-alpha)
+ * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha, prime-optimus-alpha, head)
  * @param version Rancher version to install (latest, devel)
- * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, head)
+ * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, 2.11, 2.12, head)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
  * @param extraFlags Optional helm flags for installing Rancher (start from extraEnv[2])
@@ -105,6 +137,14 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	}
 
 	channelName := "rancher-" + channel
+	// For "head" channel, append headVersion to channelName
+	if channel == "head" {
+		// headVersion must be set otherwise use version as a fallback value
+		if headVersion == "" {
+			headVersion = version
+		}
+		channelName = channelName + "-" + headVersion
+	}
 
 	flags := []string{
 		"upgrade", "--install", "rancher", channelName + "/rancher",
@@ -133,6 +173,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		chartRepo = "https://releases.rancher.com/server-charts/latest"
 	case "stable":
 		chartRepo = "https://releases.rancher.com/server-charts/stable"
+	case "head":
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/release-" + headVersion
 	}
 
 	// Add Helm repository
@@ -145,7 +187,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	}
 
 	// Set specified version if needed
-	if version != "" && version != "latest" {
+	if version != "" && version != "latest" && channel != "head" {
 		if version == "devel" {
 			flags = appendDevelFlags(flags, headVersion)
 		} else if strings.Contains(version, "-rc") || strings.Contains(version, "-alpha") {
@@ -153,6 +195,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		} else {
 			flags = append(flags, "--version", version)
 		}
+	} else if channel == "head" && headVersion != "" {
+		flags = appendHeadFlags(flags, headVersion)
 	}
 
 	// For Private CA
