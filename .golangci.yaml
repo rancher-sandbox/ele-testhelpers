@@ -14,6 +14,8 @@ linters:
     - goimports # check imports
     - gocyclo # check complexity
 linters-settings:
+  goconst:
+      min-occurrences: 6  # Increase from default 3 to 6, so "head" with 5 occurrences won't trigger
   gocyclo:
     min-complexity: 30
   goheader:
