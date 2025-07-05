@@ -65,33 +65,16 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 
 /** Support function for populating correct helm flags for Head versions in "head" channel
  * @param flags Helm flags
- * @param headVersion Rancher head version
  * @returns flags with correct values
  */
-func appendHeadFlags(flags []string, headVersion string) []string {
+func appendHeadFlags(flags []string) []string {
 
-	// Regex pattern for 2.12 to 2.99 but not 2.7, 2.8, 2.9, 2.10 and 2.11
-	pattern := `^2\.(1[2-9]|[2-9]\d)$`
-	re := regexp.MustCompile(pattern)
-
-	switch {
-	case re.MatchString(headVersion):
-		// If the version matches the regex, like 2.12 and up.
-		// No need to set rancherImage or CATTLE_AGENT_IMAGE as they are already set in the head chart for 2.12
-		flags = append(flags,
-			"--devel",
-		)
-	default:
-		// For Rancher versions 2.10 and 2.11, head images are only available on stgregistry.suse.com
-		// The head chart automatically uses the correct registry for the main rancher image,
-		// but the rancher-agent image must be explicitly set to use stgregistry.suse.com
-		// (NOTE: the chart refers to agent image using SHA in the tag, but luckily there is v2.1x-head tag available with the same Image ID)
-		flags = append(flags,
-			"--devel",
-			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
-			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
-		)
-	}
+	// For Rancher versions 2.10 and 2.11, head images are available on stgregistry.suse.com
+	// For Rancher version 2.12, head images are available on the dockerhub registry
+	// For all versions there is no need to provide extra flags, only the --devel flag is needed
+	flags = append(flags,
+		"--devel",
+	)
 	return flags
 }
 
@@ -196,7 +179,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 			flags = append(flags, "--version", version)
 		}
 	} else if channel == "head" && headVersion != "" {
-		flags = appendHeadFlags(flags, headVersion)
+		flags = appendHeadFlags(flags)
 	}
 
 	// For Private CA
