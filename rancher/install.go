@@ -89,8 +89,8 @@ func appendRCAlphaFlags(flags []string, version string, channel string) []string
 		"--devel",
 		"--version", version,
 	)
-	// For rancher:2.x.y-rc from prime-optimus and prime-optimus-alpha channel only
-	if strings.Contains(channel, "prime-optimus") {
+	// For rancher:2.x.y-rc from prime-rc and prime-alpha channel only
+	if strings.Contains(channel, "prime-") {
 		flags = append(flags,
 			"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
@@ -104,9 +104,9 @@ func appendRCAlphaFlags(flags []string, version string, channel string) []string
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest, prime, prime-optimus, alpha, prime-optimus-alpha, head)
+ * @param channel Rancher channel to use (stable, latest, prime, prime-alpha, prime-rc, alpha and head)
  * @param version Rancher version to install (latest, devel)
- * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, 2.11, 2.12, head)
+ * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, head)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
  * @param extraFlags Optional helm flags for installing Rancher (start from extraEnv[2])
@@ -129,8 +129,16 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		channelName = channelName + "-" + headVersion
 	}
 
+	// Use different chart name for prime-alpha and prime-rc channels
+	var rancherChartName string
+	if strings.Contains(channelName, "prime-") {
+		rancherChartName = "rancher-prime"
+	} else {
+		rancherChartName = "rancher"
+	}
+
 	flags := []string{
-		"upgrade", "--install", "rancher", channelName + "/rancher",
+		"upgrade", "--install", rancherChartName, channelName + "/" + rancherChartName,
 		"--namespace", "cattle-system",
 		"--create-namespace",
 		"--set", "hostname=" + hostname,
@@ -146,10 +154,13 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	switch channel {
 	case "prime":
 		chartRepo = "https://charts.rancher.com/server-charts/prime"
-	case "prime-optimus":
-		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
-	case "prime-optimus-alpha":
-		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
+	// As of 11/25 new prime-alpha and prime-rc channels were added
+	// prime-optimus and prime-optimus-alpha channels were replaced by prime-rc and prime-alpha
+	// ref. https://github.com/rancherlabs/rancher-process/pull/97/files
+	case "prime-alpha":
+		chartRepo = "https://charts.rancher.com/server-charts/alpha"
+	case "prime-rc":
+		chartRepo = "https://charts.rancher.com/server-charts/rc"
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 	case "latest":
