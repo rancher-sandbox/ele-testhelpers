@@ -105,7 +105,7 @@ func appendRCAlphaFlags(flags []string, version string, channel string) []string
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
  * @param channel Rancher channel to use (stable, latest, prime, prime-alpha, prime-rc, alpha and head)
- * @param version Rancher version to install (latest, devel)
+ * @param version Rancher version to install (latest, devel or specific version like 2.12.3 or 2.13.0-alpha7)
  * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, head)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
@@ -129,9 +129,9 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		channelName = channelName + "-" + headVersion
 	}
 
-	// Use different chart name for prime-alpha and prime-rc channels
+	// Use different chart name for prime-alpha and prime-rc channels for Rancher v2.13.x
 	var rancherChartName string
-	if strings.Contains(channelName, "prime-") {
+	if strings.Contains(channelName, "prime-") && strings.Contains(version, "2.13.") {
 		rancherChartName = "rancher-prime"
 	} else {
 		rancherChartName = "rancher"
@@ -154,9 +154,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	switch channel {
 	case "prime":
 		chartRepo = "https://charts.rancher.com/server-charts/prime"
-	// As of 11/25 new prime-alpha and prime-rc channels were added
-	// prime-optimus and prime-optimus-alpha channels were replaced by prime-rc and prime-alpha
-	// ref. https://github.com/rancherlabs/rancher-process/pull/97/files
+	// prime-alpha and prime-rc replaced prime-optimus channels (see https://github.com/rancherlabs/rancher-process/pull/97)
 	case "prime-alpha":
 		chartRepo = "https://charts.rancher.com/server-charts/alpha"
 	case "prime-rc":
