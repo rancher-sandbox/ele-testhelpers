@@ -129,7 +129,8 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		channelName = channelName + "-" + headVersion
 	}
 
-	// Use different chart name for prime-alpha and prime-rc channels for Rancher v2.13.x
+	// As of 11/25 different chart name for prime-alpha and prime-rc channels was introduced for Rancher v2.13.x
+	// Later we can assume the same for v2.12.5 but it is not released nor implemented yet
 	var rancherChartName string
 	if strings.Contains(channelName, "prime-") && strings.Contains(version, "2.13.") {
 		rancherChartName = "rancher-prime"
@@ -154,11 +155,11 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	switch channel {
 	case "prime":
 		chartRepo = "https://charts.rancher.com/server-charts/prime"
-	// prime-alpha and prime-rc replaced prime-optimus channels (see https://github.com/rancherlabs/rancher-process/pull/97)
+	// As of 11/25 prime-optimus[-alpha] renamed to prime-alpha and prime-rc
 	case "prime-alpha":
-		chartRepo = "https://charts.rancher.com/server-charts/alpha"
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
 	case "prime-rc":
-		chartRepo = "https://charts.rancher.com/server-charts/rc"
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 	case "latest":
