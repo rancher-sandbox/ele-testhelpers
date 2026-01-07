@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 - 2025 SUSE LLC
+Copyright © 2022 - 2026 SUSE LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -129,10 +129,10 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		channelName = channelName + "-" + headVersion
 	}
 
-	// As of 11/25 different chart name for prime channels was introduced for Rancher v2.13.x
+	// As of 11/25 different chart name for prime-alpha and prime-rc channels was introduced for Rancher v2.13.x
 	// Later we can assume the same for v2.12.5 but it is not released nor implemented yet
 	var rancherChartName string
-	if strings.Contains(channelName, "prime") && strings.Contains(version, "2.13.") {
+	if strings.Contains(channelName, "prime-") && strings.Contains(version, "2.13.") {
 		rancherChartName = "rancher-prime"
 	} else {
 		rancherChartName = "rancher"
