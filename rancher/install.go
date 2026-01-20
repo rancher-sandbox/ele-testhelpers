@@ -129,14 +129,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		channelName = channelName + "-" + headVersion
 	}
 
-	// As of 11/25 different chart name for prime-alpha and prime-rc channels was introduced for Rancher v2.13.x
-	// Later we can assume the same for v2.12.5 but it is not released nor implemented yet
-	var rancherChartName string
-	if strings.Contains(channelName, "prime-") && strings.Contains(version, "2.13.") {
-		rancherChartName = "rancher-prime"
-	} else {
-		rancherChartName = "rancher"
-	}
+	var rancherChartName = "rancher"
 
 	flags := []string{
 		"upgrade", "--install", rancherChartName, channelName + "/" + rancherChartName,
