@@ -1,6 +1,6 @@
 module github.com/rancher-sandbox/ele-testhelpers
 
-go 1.20
+go 1.24
 
 require (
 	github.com/bramvdbogaerde/go-scp v1.2.1
