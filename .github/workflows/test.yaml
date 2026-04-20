@@ -9,15 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       - name: Configure cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/go/pkg/mod
@@ -26,9 +26,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-test-go-${{ hashFiles('**/go.sum') }}
       - name: Install K8s Kind Cluster
-        uses: helm/kind-action@v1
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
       - name: Run tests
         run: |
-          go install github.com/onsi/ginkgo/v2/ginkgo
-          go install github.com/onsi/gomega/...
+          go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.3
           ginkgo -r -v  --covermode=atomic --coverprofile=coverage.out -p -r ./...
