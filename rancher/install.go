@@ -16,6 +16,7 @@ package rancher
 
 import (
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -27,8 +28,7 @@ import (
  * @param headVersion Rancher head version
  * @returns flags with correct values
  */
-func appendDevelFlags(flags []string, headVersion string) []string {
-
+func appendDevelFlags(flags *[]string, headVersion string) {
 	// Regex pattern for 2.13 to 2.99 but not 2.7, 2.8, 2.9, 2.10, 2.11 and 2.12
 	pattern := `^2\.(1[3-9]|[2-9]\d)$`
 	re := regexp.MustCompile(pattern)
@@ -36,7 +36,7 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 	switch {
 	case headVersion == "head":
 		// As of 04/2025 this can be used as "latest/devel/head" to test v2.12-head
-		flags = append(flags,
+		*flags = append(*flags,
 			"--devel",
 			"--set", "rancherImageTag=head",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
@@ -44,7 +44,7 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 		)
 	case re.MatchString(headVersion):
 		// If the version matches the regex, like 2.13 and up.
-		flags = append(flags,
+		*flags = append(*flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
@@ -52,7 +52,7 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 		)
 	default:
 		// Devel images for rancher:v2\.(7|8|9|10|11|12)-head are available on stgregistry.suse.com
-		flags = append(flags,
+		*flags = append(*flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
 			"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
@@ -60,22 +60,19 @@ func appendDevelFlags(flags []string, headVersion string) []string {
 			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+headVersion+"-head",
 		)
 	}
-	return flags
 }
 
 /** Support function for populating correct helm flags for Head versions in "head" channel
  * @param flags Helm flags
  * @returns flags with correct values
  */
-func appendHeadFlags(flags []string) []string {
-
+func appendHeadFlags(flags *[]string) {
 	// For Rancher versions 2.10, 2.11, 2.12, head images are available on stgregistry.suse.com
 	// For Rancher version 2.13, head images are available on the dockerhub registry
 	// For all versions there is no need to provide extra flags, only the --devel flag is needed
-	flags = append(flags,
+	*flags = append(*flags,
 		"--devel",
 	)
-	return flags
 }
 
 /** Support function for populating correct helm flags for RC and Alpha versions
@@ -84,20 +81,34 @@ func appendHeadFlags(flags []string) []string {
  * @param channel Rancher channel
  * @returns flags with correct values
  */
-func appendRCAlphaFlags(flags []string, version string, channel string) []string {
-	flags = append(flags,
+func appendRCAlphaFlags(flags *[]string, version, channel, channelName string) error {
+	// Search for the latest version if needed
+	if version == "latest" {
+		list, err := kubectl.RunHelmBinaryWithOutput("search", "repo", channelName, "--devel", "--versions")
+		if err != nil {
+			return err
+		}
+		out, err := exec.Command("bash", "-c", "sort -rV <<<'"+list+"' | awk 'NR==1 {printf \"%s\",$2}'").Output()
+		if err != nil {
+			return err
+		}
+
+		// "latest" is converted to the found version
+		version = string(out)
+	}
+	*flags = append(*flags,
 		"--devel",
 		"--version", version,
 	)
 	// For rancher:2.x.y-rc from prime-rc and prime-alpha channel only
 	if strings.Contains(channel, "prime-") {
-		flags = append(flags,
+		*flags = append(*flags,
 			"--set", "rancherImage=stgregistry.suse.com/rancher/rancher",
 			"--set", "extraEnv[1].name=CATTLE_AGENT_IMAGE",
 			"--set", "extraEnv[1].value=stgregistry.suse.com/rancher/rancher-agent:v"+version,
 		)
 	}
-	return flags
+	return nil
 }
 
 /**
@@ -173,16 +184,18 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	}
 
 	// Set specified version if needed
-	if version != "" && version != "latest" && channel != "head" {
+	if channel != "head" && !strings.Contains(channel, "alpha") && !strings.Contains(channel, "-rc") && !strings.Contains(version, "-rc") {
 		if version == "devel" {
-			flags = appendDevelFlags(flags, headVersion)
-		} else if strings.Contains(version, "-rc") || strings.Contains(version, "-alpha") {
-			flags = appendRCAlphaFlags(flags, version, channel)
-		} else {
+			appendDevelFlags(&flags, headVersion)
+		} else if version != "" && version != "latest" {
 			flags = append(flags, "--version", version)
 		}
-	} else if channel == "head" && headVersion != "" {
-		flags = appendHeadFlags(flags)
+	} else if strings.Contains(channel, "alpha") || strings.Contains(channel, "-rc") || strings.Contains(version, "-rc") {
+		if err := appendRCAlphaFlags(&flags, version, channel, channelName); err != nil {
+			return err
+		}
+	} else if channel == "head" {
+		appendHeadFlags(&flags)
 	}
 
 	// For Private CA
