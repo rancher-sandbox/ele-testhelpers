@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -273,8 +274,17 @@ func (c *Client) SendFile(src, dst, perm string) error {
 func HTTPShare(directory, listenAddr string) {
 	fs := http.FileServer(http.Dir(directory))
 
+	// Bind the listener synchronously so the port is ready to accept
+	// connections as soon as this function returns (avoids a race where
+	// callers hit "connection refused" before the goroutine started).
+	listener, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		fmt.Printf("Server failed: %s\n", err)
+		return
+	}
+
 	go func() {
-		if err := http.ListenAndServe(listenAddr, fs); err != nil {
+		if err := http.Serve(listener, fs); err != nil {
 			fmt.Printf("Server failed: %s\n", err)
 		}
 	}()
