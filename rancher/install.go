@@ -29,13 +29,13 @@ import (
  * @returns flags with correct values
  */
 func appendDevelFlags(flags *[]string, headVersion string) {
-	// Regex pattern for 2.13 to 2.99 but not 2.7, 2.8, 2.9, 2.10, 2.11 and 2.12
-	pattern := `^2\.(1[3-9]|[2-9]\d)$`
+	// Regex pattern for 2.15 to 2.99 but not 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13 and 2.14
+	pattern := `^2\.(1[5-9]|[2-9]\d)$`
 	re := regexp.MustCompile(pattern)
 
 	switch {
 	case headVersion == "head":
-		// As of 04/2025 this can be used as "latest/devel/head" to test v2.12-head
+		// As of 08/2026 this can be used as "latest/devel/head" to test v2.16-head
 		*flags = append(*flags,
 			"--devel",
 			"--set", "rancherImageTag=head",
@@ -43,7 +43,7 @@ func appendDevelFlags(flags *[]string, headVersion string) {
 			"--set", "extraEnv[1].value=rancher/rancher-agent:head",
 		)
 	case re.MatchString(headVersion):
-		// If the version matches the regex, like 2.13 and up.
+		// If the version matches the regex, like 2.15 and up.
 		*flags = append(*flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
@@ -51,7 +51,7 @@ func appendDevelFlags(flags *[]string, headVersion string) {
 			"--set", "extraEnv[1].value=rancher/rancher-agent:v"+headVersion+"-head",
 		)
 	default:
-		// Devel images for rancher:v2\.(7|8|9|10|11|12)-head are available on stgregistry.suse.com
+		// Devel images for rancher:v2\.(7|8|9|10|11|12|13|14)-head are available on stgregistry.suse.com
 		*flags = append(*flags,
 			"--devel",
 			"--set", "rancherImageTag=v"+headVersion+"-head",
@@ -67,8 +67,8 @@ func appendDevelFlags(flags *[]string, headVersion string) {
  * @returns flags with correct values
  */
 func appendHeadFlags(flags *[]string) {
-	// For Rancher versions 2.10, 2.11, 2.12, head images are available on stgregistry.suse.com
-	// For Rancher version 2.13, head images are available on the dockerhub registry
+	// For Rancher versions 2.10, 2.11, 2.12, 2.13, 2.14, head images are available on stgregistry.suse.com
+	// For Rancher version 2.15 onwards, head images are available on the dockerhub registry
 	// For all versions there is no need to provide extra flags, only the --devel flag is needed
 	*flags = append(*flags,
 		"--devel",
