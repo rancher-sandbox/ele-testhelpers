@@ -32,7 +32,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v3"
 
 	wait "github.com/rancher-sandbox/ele-testhelpers/helpers"
 )
