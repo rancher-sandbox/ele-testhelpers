@@ -15,12 +15,17 @@ limitations under the License.
 package rancher
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
+	"go.yaml.in/yaml/v3"
 )
 
 /** Support function for populating correct helm flags for Devel versions
@@ -111,12 +116,63 @@ func appendRCAlphaFlags(flags *[]string, version, channel, channelName string) e
 	return nil
 }
 
+/** Support function for fetching the latest Rancher version matching a major.minor prefix
+ * @remarks Equivalent to: curl -fsSL <chartRepo>/index.yaml | yq '.entries.rancher | map(select(.version | test("^<version>"))) | sort_by(.created) | .[-1].version'
+ * @param version Rancher major.minor version (e.g. 2.15)
+ * @param chartRepo Helm chart repository URL
+ * @returns The most recently created matching version or an error
+ */
+func fetchPrimeHeadVersion(version, chartRepo string) (string, error) {
+	resp, err := http.Get(strings.TrimSuffix(chartRepo, "/") + "/index.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch index.yaml from %s: %s", chartRepo, resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var index struct {
+		Entries map[string][]struct {
+			Version string    `yaml:"version"`
+			Created time.Time `yaml:"created"`
+		} `yaml:"entries"`
+	}
+	if err := yaml.Unmarshal(body, &index); err != nil {
+		return "", err
+	}
+
+	// Keep the most recently created entry matching the version prefix
+	var latest string
+	var latestCreated time.Time
+	for _, e := range index.Entries["rancher"] {
+		if strings.HasPrefix(e.Version, version+".") && !e.Created.Before(latestCreated) {
+			latest = e.Version
+			latestCreated = e.Created
+		}
+	}
+	if latest == "" {
+		return "", fmt.Errorf("no rancher version matching %s found in %s", version, chartRepo)
+	}
+
+	return latest, nil
+}
+
+// FetchPrimeHeadVersion is the exported variant of the function so it can be used for testing inside another pkg
+var FetchPrimeHeadVersion = fetchPrimeHeadVersion
+
 /**
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest, prime, prime-alpha, prime-rc, alpha and head)
- * @param version Rancher version to install (latest, devel or specific version like 2.12.3 or 2.13.0-alpha7)
+ * @param channel Rancher channel to use (stable, latest, prime, prime-alpha, prime-rc, prime-head, alpha and head)
+ * @param version Rancher version to install (latest, devel or specific version like 2.12.3 or 2.13.0-alpha7; major.minor like 2.15 for prime-head)
  * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, head)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
@@ -162,8 +218,18 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	// As of 11/25 prime-optimus[-alpha] renamed to prime-alpha and prime-rc
 	case "prime-alpha":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
-	case "prime-rc":
+	case "prime-rc", "prime-head":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
+		// For prime-head, resolve the latest version for the given major.minor
+		// and then install it like any other prime-rc version
+		if channel == "prime-head" {
+			latest, err := fetchPrimeHeadVersion(version, chartRepo)
+			if err != nil {
+				return err
+			}
+			version = latest
+			channel = "prime-rc"
+		}
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 	case "latest":
