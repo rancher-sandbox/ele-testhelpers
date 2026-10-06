@@ -17,6 +17,7 @@ package rancher
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -186,6 +187,15 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		password = envPW
 	}
 
+	// prime-head channel indicates that the version needs to be resolved to the latest version for the given major.minor,
+	// but it is essentially a prime-rc channel, so we change its value to indicate that.
+	var isPrimeHeadChannel bool
+	if channel == "prime-head" {
+		log.Print("Changing the channel name prime-head to prime-rc...")
+		channel = "prime-rc"
+		isPrimeHeadChannel = true
+	}
+
 	channelName := "rancher-" + channel
 	// For "head" channel, append headVersion to channelName
 	if channel == "head" {
@@ -218,17 +228,16 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	// As of 11/25 prime-optimus[-alpha] renamed to prime-alpha and prime-rc
 	case "prime-alpha":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
-	case "prime-rc", "prime-head":
+	case "prime-rc":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
 		// For prime-head, resolve the latest version for the given major.minor
 		// and then install it like any other prime-rc version
-		if channel == "prime-head" {
+		if isPrimeHeadChannel {
 			latest, err := fetchPrimeHeadVersion(version, chartRepo)
 			if err != nil {
 				return err
 			}
 			version = latest
-			channel = "prime-rc"
 		}
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
