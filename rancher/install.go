@@ -16,17 +16,18 @@ package rancher
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
+	"helm.sh/helm/v4/pkg/cli"
+	"helm.sh/helm/v4/pkg/getter"
+	repo "helm.sh/helm/v4/pkg/repo/v1"
+
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
-	"go.yaml.in/yaml/v3"
 )
 
 /** Support function for populating correct helm flags for Devel versions
@@ -124,28 +125,17 @@ func appendRCAlphaFlags(flags *[]string, version, channel, channelName string) e
  * @returns The most recently created matching version or an error
  */
 func fetchPrimeHeadVersion(version, chartRepo string) (string, error) {
-	resp, err := http.Get(strings.TrimSuffix(chartRepo, "/") + "/index.yaml")
+	chartRepository, err := repo.NewChartRepository(&repo.Entry{URL: chartRepo}, getter.All(&cli.EnvSettings{}))
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch index.yaml from %s: %s", chartRepo, resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
+	indexPath, err := chartRepository.DownloadIndexFile()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to fetch index.yaml from %s: %w", chartRepo, err)
 	}
 
-	var index struct {
-		Entries map[string][]struct {
-			Version string    `yaml:"version"`
-			Created time.Time `yaml:"created"`
-		} `yaml:"entries"`
-	}
-	if err := yaml.Unmarshal(body, &index); err != nil {
+	index, err := repo.LoadIndexFile(indexPath)
+	if err != nil {
 		return "", err
 	}
 

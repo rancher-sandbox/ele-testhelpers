@@ -26,15 +26,20 @@ import (
 const fakeIndex = `apiVersion: v1
 entries:
   rancher:
-  - version: 2.15.3-aaaaaaa-head
+  - name: rancher
+    version: 2.15.3-aaaaaaa-head
     created: "2026-09-24T09:59:15Z"
-  - version: 2.15.3-bbbbbbb-head
+  - name: rancher
+    version: 2.15.3-bbbbbbb-head
     created: "2026-10-02T09:52:41Z"
-  - version: 2.15.2-ccccccc-head
+  - name: rancher
+    version: 2.15.2-ccccccc-head
     created: "2026-09-30T10:00:00Z"
-  - version: 2.1.0
+  - name: rancher
+    version: 2.1.0
     created: "2026-10-04T10:00:00Z"
-  - version: 2.16.0-ddddddd-head
+  - name: rancher
+    version: 2.16.0-ddddddd-head
     created: "2026-10-03T10:00:00Z"
 `
 
