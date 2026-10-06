@@ -16,17 +16,18 @@ package rancher
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
+	"helm.sh/helm/v4/pkg/cli"
+	"helm.sh/helm/v4/pkg/getter"
+	repo "helm.sh/helm/v4/pkg/repo/v1"
+
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
-	"go.yaml.in/yaml/v3"
 )
 
 /** Support function for populating correct helm flags for Devel versions
@@ -123,29 +124,18 @@ func appendRCAlphaFlags(flags *[]string, version, channel, channelName string) e
  * @param chartRepo Helm chart repository URL
  * @returns The most recently created matching version or an error
  */
-func fetchPrimeHeadVersion(version, chartRepo string) (string, error) {
-	resp, err := http.Get(strings.TrimSuffix(chartRepo, "/") + "/index.yaml")
+func FetchPrimeHeadVersion(version, chartRepo string) (resolvedVersion string, err error) {
+	chartRepository, err := repo.NewChartRepository(&repo.Entry{URL: chartRepo}, getter.All(&cli.EnvSettings{}))
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch index.yaml from %s: %s", chartRepo, resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
+	indexPath, err := chartRepository.DownloadIndexFile()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to fetch index.yaml from %s: %w", chartRepo, err)
 	}
 
-	var index struct {
-		Entries map[string][]struct {
-			Version string    `yaml:"version"`
-			Created time.Time `yaml:"created"`
-		} `yaml:"entries"`
-	}
-	if err := yaml.Unmarshal(body, &index); err != nil {
+	index, err := repo.LoadIndexFile(indexPath)
+	if err != nil {
 		return "", err
 	}
 
@@ -165,9 +155,6 @@ func fetchPrimeHeadVersion(version, chartRepo string) (string, error) {
 	return latest, nil
 }
 
-// FetchPrimeHeadVersion is the exported variant of the function so it can be used for testing inside another pkg
-var FetchPrimeHeadVersion = fetchPrimeHeadVersion
-
 /**
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
@@ -180,7 +167,6 @@ var FetchPrimeHeadVersion = fetchPrimeHeadVersion
  * @param extraFlags Optional helm flags for installing Rancher (start from extraEnv[2])
  * @returns Nothing or an error
  */
-// NOTE: AddNode does not have unit test as it is not easy to mock
 func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string, extraFlags ...[]string) error {
 	var password = "rancherpassword"
 	if envPW := os.Getenv("RANCHER_PASSWORD"); envPW != "" {
@@ -233,7 +219,7 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		// For prime-head, resolve the latest version for the given major.minor
 		// and then install it like any other prime-rc version
 		if isPrimeHeadChannel {
-			latest, err := fetchPrimeHeadVersion(version, chartRepo)
+			latest, err := FetchPrimeHeadVersion(version, chartRepo)
 			if err != nil {
 				return err
 			}
