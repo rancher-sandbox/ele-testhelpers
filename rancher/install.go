@@ -120,18 +120,26 @@ func appendRCAlphaFlags(flags *[]string, version, channel, channelName string) e
 
 /** Support function for fetching the latest Rancher version matching a major.minor prefix
  * @remarks Equivalent to: curl -fsSL <chartRepo>/index.yaml | yq '.entries.rancher | map(select(.version | test("^<version>"))) | sort_by(.created) | .[-1].version'
- * @param version Rancher major.minor version (e.g. 2.15)
- * @param chartRepo Helm chart repository URL
+ * @param version Rancher major.minor version (e.g. 2.15, prime-head/2.15 or prime-rc/2.15)
+ * @param chartRepo Helm chart repository URL; if empty, uses prime-rc channel
  * @returns The most recently created matching version or an error
  */
 func FetchPrimeHeadVersion(version, chartRepo string) (resolvedVersion string, err error) {
+	// Accept both "<channel>/X.Y" and "X.Y"
+	parts := strings.Split(version, "/")
+	version = parts[len(parts)-1]
+
+	if chartRepo == "" {
+		log.Println("No value provided for chartRepo using the default prime-rc chart repo...")
+		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
+	}
 	chartRepository, err := repo.NewChartRepository(&repo.Entry{URL: chartRepo}, getter.All(&cli.EnvSettings{}))
 	if err != nil {
 		return "", err
 	}
 	indexPath, err := chartRepository.DownloadIndexFile()
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch index.yaml from %s: %w", chartRepo, err)
+		return "", fmt.Errorf("failed to fetch index.yaml: %w", err)
 	}
 
 	index, err := repo.LoadIndexFile(indexPath)
@@ -149,7 +157,7 @@ func FetchPrimeHeadVersion(version, chartRepo string) (resolvedVersion string, e
 		}
 	}
 	if latest == "" {
-		return "", fmt.Errorf("no rancher version matching %s found in %s", version, chartRepo)
+		return "", fmt.Errorf("no rancher version matching %s found", version)
 	}
 
 	return latest, nil
@@ -176,11 +184,15 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 
 	// prime-head channel indicates that the version needs to be resolved to the latest version for the given major.minor,
 	// but it is essentially a prime-rc channel, so we change its value to indicate that.
-	var isPrimeHeadChannel bool
+	var err error
 	if channel == "prime-head" {
-		log.Print("Changing the channel name prime-head to prime-rc...")
+		log.Println("Changing the channel name prime-head to prime-rc...")
 		channel = "prime-rc"
-		isPrimeHeadChannel = true
+		version, err = FetchPrimeHeadVersion(version, "")
+		if err != nil {
+			return err
+		}
+		log.Printf("Updated the version to %v", version)
 	}
 
 	channelName := "rancher-" + channel
@@ -217,15 +229,6 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/alpha"
 	case "prime-rc":
 		chartRepo = "https://charts.optimus.rancher.io/server-charts/latest"
-		// For prime-head, resolve the latest version for the given major.minor
-		// and then install it like any other prime-rc version
-		if isPrimeHeadChannel {
-			latest, err := FetchPrimeHeadVersion(version, chartRepo)
-			if err != nil {
-				return err
-			}
-			version = latest
-		}
 	case "alpha":
 		chartRepo = "https://releases.rancher.com/server-charts/alpha"
 	case "latest":
