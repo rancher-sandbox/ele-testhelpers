@@ -17,7 +17,7 @@ package vm
 import (
 	"fmt"
 
-	. "github.com/onsi/gomega" //nolint:revive
+	. "github.com/onsi/gomega" //nolint:revive,staticcheck
 )
 
 func SystemdUnitIsStarted(s string, st *SUT) {

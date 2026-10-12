@@ -28,8 +28,8 @@ import (
 
 	"github.com/bramvdbogaerde/go-scp"
 
-	. "github.com/onsi/ginkgo/v2" //nolint:revive
-	. "github.com/onsi/gomega"    //nolint:revive
+	. "github.com/onsi/ginkgo/v2" //nolint:revive,staticcheck
+	. "github.com/onsi/gomega"    //nolint:revive,staticcheck
 	"github.com/pkg/errors"
 	ssh "golang.org/x/crypto/ssh"
 )

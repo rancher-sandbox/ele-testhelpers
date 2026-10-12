@@ -28,7 +28,7 @@ type Conn struct {
 }
 
 func (c *Conn) Read(b []byte) (int, error) {
-	err := c.Conn.SetReadDeadline(time.Now().Add(c.ReadTimeout))
+	err := c.SetReadDeadline(time.Now().Add(c.ReadTimeout))
 	if err != nil {
 		return 0, err
 	}
@@ -36,7 +36,7 @@ func (c *Conn) Read(b []byte) (int, error) {
 }
 
 func (c *Conn) Write(b []byte) (int, error) {
-	err := c.Conn.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
+	err := c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	if err != nil {
 		return 0, err
 	}
@@ -60,7 +60,7 @@ func SSHDialTimeout(network, addr string, config *ssh.ClientConfig, timeout time
 		t := time.NewTicker(2 * time.Second)
 		defer t.Stop()
 		for range t.C {
-			_, _, err := client.Conn.SendRequest("keepalive@golang.org", true, nil)
+			_, _, err := client.SendRequest("keepalive@golang.org", true, nil)
 			if err != nil {
 				return
 			}

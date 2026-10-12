@@ -167,7 +167,7 @@ func FetchPrimeHeadVersion(version, chartRepo string) (resolvedVersion string, e
  * @param extraFlags Optional helm flags for installing Rancher (start from extraEnv[2])
  * @returns Nothing or an error
  */
-//nolint:gocyclo
+//nolint:gocyclo,goconst
 func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string, extraFlags ...[]string) error {
 	var password = "rancherpassword"
 	if envPW := os.Getenv("RANCHER_PASSWORD"); envPW != "" {

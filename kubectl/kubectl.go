@@ -318,15 +318,16 @@ func (k *Kubectl) checkWait(namespace string, requiredStatus string, resourceNam
 
 // WaitLabelFilter waits for the condition on the resource based on label using kubectl command
 func (k *Kubectl) WaitLabelFilter(namespace string, requiredStatus string, resourceName string, labelName string) error {
-	if requiredStatus == "complete" {
+	switch requiredStatus {
+	case "complete":
 		return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 			return k.checkPodCompleteLabelFilter(namespace, labelName)
 		})
-	} else if requiredStatus == "terminate" {
+	case "terminate":
 		return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 			return k.checkPodTerminateLabelFilter(namespace, labelName)
 		})
-	} else if requiredStatus == "ready" {
+	case "ready":
 		return wait.PollImmediate(k.PollInterval, k.PollTimeout, func() (bool, error) {
 			return k.checkPodReadyLabelFilter(namespace, resourceName, labelName, requiredStatus)
 		})
