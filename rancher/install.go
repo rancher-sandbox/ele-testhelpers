@@ -132,12 +132,12 @@ func FetchPrimeRCHeadVersion(version string) (resolvedVersion string, err error)
 	if err != nil {
 		return "", err
 	}
-	indexPath, err := chartRepository.DownloadIndexFile()
+	indexYAML, err := chartRepository.DownloadIndexFile()
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch index.yaml: %w", err)
 	}
 
-	index, err := repo.LoadIndexFile(indexPath)
+	index, err := repo.LoadIndexFile(indexYAML)
 	if err != nil {
 		return "", err
 	}
@@ -181,9 +181,9 @@ func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy str
 	// but it is essentially a prime-rc channel, so we change its value to indicate that.
 	var err error
 	if channel == "prime-head" {
-		log.Println("Changing the channel name prime-head to prime-rc...")
+		log.Println("Changing the channel name from prime-head to prime-rc...")
 		channel = "prime-rc"
-		log.Printf("Updating the version %v to latest...", version)
+		log.Printf("Updating the version %v to latest head version...", version)
 		version, err = FetchPrimeRCHeadVersion(version)
 		if err != nil {
 			return err
