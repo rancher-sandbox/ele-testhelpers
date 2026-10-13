@@ -15,10 +15,17 @@ limitations under the License.
 package rancher
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
+
+	"helm.sh/helm/v4/pkg/cli"
+	"helm.sh/helm/v4/pkg/getter"
+	repo "helm.sh/helm/v4/pkg/repo/v1"
 
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
 )
@@ -111,23 +118,77 @@ func appendRCAlphaFlags(flags *[]string, version, channel, channelName string) e
 	return nil
 }
 
+/** Support function for fetching the latest Rancher version matching a major.minor prefix from prime-rc channel
+ * @remarks Equivalent to: curl -fsSL <chartRepo>/index.yaml | yq '.entries.rancher | map(select(.version | test("^<version>"))) | sort_by(.created) | .[-1].version'
+ * @param version Rancher major.minor version (e.g. 2.15, prime-head/2.15 or prime-rc/2.15)
+ * @returns The most recently created matching version or an error
+ */
+func FetchPrimeRCHeadVersion(version string) (resolvedVersion string, err error) {
+	// Accept both "<channel>/X.Y" and "X.Y"
+	parts := strings.Split(version, "/")
+	version = parts[len(parts)-1]
+
+	chartRepository, err := repo.NewChartRepository(&repo.Entry{URL: "https://charts.optimus.rancher.io/server-charts/latest"}, getter.All(&cli.EnvSettings{}))
+	if err != nil {
+		return "", err
+	}
+	indexYAML, err := chartRepository.DownloadIndexFile()
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch index.yaml: %w", err)
+	}
+
+	index, err := repo.LoadIndexFile(indexYAML)
+	if err != nil {
+		return "", err
+	}
+
+	// Keep the most recently created entry matching the version prefix
+	var latest string
+	var latestCreated time.Time
+	for _, e := range index.Entries["rancher"] {
+		if strings.HasPrefix(e.Version, version+".") && !e.Created.Before(latestCreated) {
+			latest = e.Version
+			latestCreated = e.Created
+		}
+	}
+	if latest == "" {
+		return "", fmt.Errorf("no rancher version matching %s found", version)
+	}
+
+	return latest, nil
+}
+
 /**
  * Install or upgrade Rancher Manager
  * @remarks Deploy a Rancher Manager instance
  * @param hostname Hostname/URL to use for the deployment
- * @param channel Rancher channel to use (stable, latest, prime, prime-alpha, prime-rc, alpha and head)
- * @param version Rancher version to install (latest, devel or specific version like 2.12.3 or 2.13.0-alpha7)
+ * @param channel Rancher channel to use (stable, latest, prime, prime-alpha, prime-rc, prime-head, alpha and head)
+ * @param version Rancher version to install (latest, devel or specific version like 2.12.3 or 2.13.0-alpha7; major.minor like 2.15 for prime-head)
  * @param headVersion Rancher head version to install (2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, head)
  * @param ca CA to use (selfsigned, private)
  * @param proxy Define if a a proxy should be configured/used
  * @param extraFlags Optional helm flags for installing Rancher (start from extraEnv[2])
  * @returns Nothing or an error
  */
-// NOTE: AddNode does not have unit test as it is not easy to mock
+//nolint:gocyclo,goconst
 func DeployRancherManager(hostname, channel, version, headVersion, ca, proxy string, extraFlags ...[]string) error {
 	var password = "rancherpassword"
 	if envPW := os.Getenv("RANCHER_PASSWORD"); envPW != "" {
 		password = envPW
+	}
+
+	// prime-head channel indicates that the version needs to be resolved to the latest version for the given major.minor,
+	// but it is essentially a prime-rc channel, so we change its value to indicate that.
+	var err error
+	if channel == "prime-head" {
+		log.Println("Changing the channel name from prime-head to prime-rc...")
+		channel = "prime-rc"
+		log.Printf("Updating the version %v to latest head version...", version)
+		version, err = FetchPrimeRCHeadVersion(version)
+		if err != nil {
+			return err
+		}
+		log.Printf("Updated the version to %v", version)
 	}
 
 	channelName := "rancher-" + channel
