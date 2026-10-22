@@ -17,15 +17,14 @@ package rancher
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
-	"helm.sh/helm/v4/pkg/cli"
-	"helm.sh/helm/v4/pkg/getter"
-	repo "helm.sh/helm/v4/pkg/repo/v1"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/rancher-sandbox/ele-testhelpers/kubectl"
 )
@@ -128,18 +127,24 @@ func FetchPrimeRCHeadVersion(version string) (resolvedVersion string, err error)
 	parts := strings.Split(version, "/")
 	version = parts[len(parts)-1]
 
-	chartRepository, err := repo.NewChartRepository(&repo.Entry{URL: "https://charts.optimus.rancher.io/server-charts/latest"}, getter.All(&cli.EnvSettings{}))
-	if err != nil {
-		return "", err
-	}
-	indexYAML, err := chartRepository.DownloadIndexFile()
+	// Fetch and parse the index in memory to avoid leaving an index.yaml file on disk
+	resp, err := http.Get("https://charts.optimus.rancher.io/server-charts/latest/index.yaml")
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch index.yaml: %w", err)
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch index.yaml: %s", resp.Status)
+	}
 
-	index, err := repo.LoadIndexFile(indexYAML)
-	if err != nil {
-		return "", err
+	var index struct {
+		Entries map[string][]struct {
+			Version string    `yaml:"version"`
+			Created time.Time `yaml:"created"`
+		} `yaml:"entries"`
+	}
+	if err := yaml.NewDecoder(resp.Body).Decode(&index); err != nil {
+		return "", fmt.Errorf("failed to parse index.yaml: %w", err)
 	}
 
 	// Keep the most recently created entry matching the version prefix
