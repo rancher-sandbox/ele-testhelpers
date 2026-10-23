@@ -128,7 +128,10 @@ func FetchPrimeRCHeadVersion(version string) (resolvedVersion string, err error)
 	version = parts[len(parts)-1]
 
 	// Fetch and parse the index in memory to avoid leaving an index.yaml file on disk
-	resp, err := http.Get("https://charts.optimus.rancher.io/server-charts/latest/index.yaml")
+	client := &http.Client{
+		Timeout: 1 * time.Minute,
+	}
+	resp, err := client.Get("https://charts.optimus.rancher.io/server-charts/latest/index.yaml")
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch index.yaml: %w", err)
 	}
